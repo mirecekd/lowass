@@ -256,7 +256,8 @@ hint = """The other side asked the USER something (or addressed him) and nobody 
 Decide whether a suggested answer would really help the user right now. Reply with exactly: NOTHING when the question was rhetorical, was already answered, is small talk or needs no help.
 Otherwise reply with the suggestion ONLY, in the language of the conversation: one or two short sentences the user can say as they are, in the first person. Use the facts sheet and the conversation; if the answer needs a fact you can look up (a ticket, a page, a date), look it up with the tools first, but never invent a number, a name or a date. If you do not know enough to suggest an answer, reply with a short suggestion of what to ask back (for example to repeat the question or to clarify a term)."""
 facts = """You keep the FACTS SHEET of a running meeting. You get the previous sheet and the NEW part of the transcript. Return the complete updated sheet and nothing else.
-Keep it short (at most 25 lines), in the language of the conversation, as plain lines grouped under these headings, skipping a heading that has nothing:
+LANGUAGE: write EVERY line in the language in which the NEW TRANSCRIPT is mostly spoken. The language of the PREVIOUS SHEET does not matter: if it is another language, rewrite its lines into the transcript language. Never write English unless the speakers speak English, and never add an English explanation or gloss next to a quote; numbers, names and dates are quoted in the original words.
+Keep it short (at most 25 lines), as plain lines grouped under these headings (the headings stay in English), skipping a heading that has nothing:
 NUMBERS - budgets, prices, amounts, percentages, versions (with what they refer to).
 DATES - deadlines, dates and times (with what they refer to).
 PEOPLE - who is who, who owns what, who promised what.
