@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from .popup_logic import Rect
 
-CARD_W = 340  # the hint card
 COLUMN_W = 420  # the transcript window and the facts window: same width, so they stack neatly
 GAP = 8
 
@@ -34,10 +33,11 @@ def start_rect(area: Rect, width: int, height: int, x: int, y: int) -> Rect:
     return fit(area, Rect(left, area.y + y, w, height))
 
 
-def column_slots(main: Rect, area: Rect, card_w: int = CARD_W, width: int = COLUMN_W, gap: int = GAP) -> tuple[Rect, Rect]:
-    """Two windows ABOVE each other, left of the hint card, each half of the area's height: (top, bottom).
-    When there is no room left of the card they sit at the left edge of the area (over the short-lived card)."""
+def column_slots(main: Rect, area: Rect, width: int = COLUMN_W, gap: int = GAP) -> tuple[Rect, Rect]:
+    """Two windows ABOVE each other, right NEXT to the main window (its left side), each half of the area's height:
+    (top, bottom). The hint card is short-lived and lies over them while it is shown, so no room is kept free for it.
+    When there is no room left of the main window they sit at the left edge of the area."""
     w = min(width, area.w)
-    x = min(max(main.x - card_w - gap - w - gap, area.x), area.x + area.w - w)
+    x = min(max(main.x - gap - w, area.x), area.x + area.w - w)
     top_h = (area.h - gap) // 2
     return Rect(x, area.y, w, top_h), Rect(x, area.y + top_h + gap, w, area.h - top_h - gap)

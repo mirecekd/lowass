@@ -94,10 +94,10 @@ def test_fit_keeps_a_window_inside_the_area():
     assert fit(Rect(0, 0, 1000, 800), Rect(-50, -50, 200, 200)) == Rect(0, 0, 200, 200)
 
 
-def test_two_windows_stack_in_halves_left_of_the_card():
+def test_two_windows_stack_in_halves_right_next_to_the_main_window():
     main = Rect(1440, 60, 460, 760)
     top, bottom = column_slots(main, Rect(0, 0, 1920, 1032))
-    assert top.x == bottom.x == 1440 - 340 - GAP - 420 - GAP and top.w == bottom.w == 420
+    assert top.x == bottom.x == 1440 - GAP - 420 and top.w == bottom.w == 420  # touching the main window, no gap for the card
     assert top.y == 0 and bottom.y == top.h + GAP and bottom.y + bottom.h == 1032  # together exactly the area
     assert abs(top.h - bottom.h) <= 1  # each one half of the height
 

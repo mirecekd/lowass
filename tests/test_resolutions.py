@@ -97,6 +97,7 @@ def test_side_windows_and_card_stay_on_the_main_windows_monitor(name):
     for slot in (top, bottom):
         assert area.x <= slot.x and slot.x + slot.w <= area.x + area.w, name
         assert area.y <= slot.y and slot.y + slot.h <= area.y + area.h, name
+        assert slot.x + slot.w <= main.x or slot.x >= main.x + main.w, f"{name}: a side window must not cover the main window"
     assert top.y + top.h + GAP == bottom.y and bottom.y + bottom.h == area.y + area.h  # halves fill the monitor
     x, y, side = place_card(main, 340, 200, area)
     assert area.x <= x and x + 340 <= area.x + area.w or side == "inside"
