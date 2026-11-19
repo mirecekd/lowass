@@ -21,7 +21,7 @@ def test_tooltip_stays_on_the_screen_at_the_right_and_bottom_edge():
 
 def test_tooltip_on_a_second_monitor_stays_on_that_monitor_not_on_the_first():
     x, y = tip_position(4400, 20, 60, 24, 300, 80, SECOND)  # near the right edge of monitor 2, close to its top
-    assert 1920 <= x and x + 300 <= 1920 + 2560 and y == 20 + 24 + 6
+    assert SECOND.x <= x and x + 300 <= SECOND.x + SECOND.w and y == 20 + 24 + 6
 
 
 def test_shortcut_tip_is_the_hint_else_the_prompt_else_the_check_prompt():

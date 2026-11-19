@@ -10,11 +10,13 @@ BULLET = re.compile(r"^\s*(?:[-*\u2022]|\d+[.)])\s")
 
 def compile_verdicts(
     red: Sequence[str], blue: Sequence[str], green: Sequence[str] = (), info: Sequence[str] = (),
+    opinion: Sequence[str] = (),
 ) -> tuple[re.Pattern[str] | None, dict[str, str]]:
     """tag -> colour name. Later groups win, so an older config that still lists CONFIRMED under `blue` is overridden
-    by `green`. Blue is also the colour of translations, so the defaults use green (confirmed) and violet (info)."""
+    by `green`. Blue is also the colour of translations, so the defaults use green (confirmed), violet (info) and
+    yellow (the assistant's own opinion, not a verified fact)."""
     colors: dict[str, str] = {}
-    for name, tags in (("red", red), ("blue", blue), ("green", green), ("info", info)):
+    for name, tags in (("red", red), ("blue", blue), ("green", green), ("info", info), ("opinion", opinion)):
         colors.update(dict.fromkeys(tags, name))
     if not colors:
         return None, colors

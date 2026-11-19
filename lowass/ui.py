@@ -46,7 +46,8 @@ class FloatingWindow:
         self.on_check: Callable[[], None] = lambda: None
         self.on_screen: Callable[[], None] = lambda: None
         self.verdict_pat, self.verdict_colors = compile_verdicts(
-            cfg.get("verdict_red", []), cfg.get("verdict_blue", []), cfg.get("verdict_green", []), cfg.get("verdict_info", []))
+            cfg.get("verdict_red", []), cfg.get("verdict_blue", []), cfg.get("verdict_green", []),
+            cfg.get("verdict_info", []), cfg.get("verdict_opinion", []))
         font = (cfg["font"], cfg["font_size"])
         r = self.root
         r.title(f"{cfg['title']} - {__version__}")

@@ -118,3 +118,16 @@ def test_confirmed_is_green_info_is_violet_and_translations_keep_blue():
     # an OLD config that still lists CONFIRMED under blue: the new group wins, so the colour is still not blue
     _p, old = compile_verdicts(["FALSE"], ["CONFIRMED", "INFO"], ["CONFIRMED"], ["INFO"])
     assert old["CONFIRMED"] == "green" and old["INFO"] == "info"
+
+
+def test_the_assistants_own_opinion_is_yellow_and_a_marked_line_keeps_its_continuation():
+    pat, colors = compile_verdicts(["FALSE"], [], ["CONFIRMED"], ["INFO"], ["OPINION", "NAZOR", "N\u00c1ZOR"])
+    out = color_lines("- **INFO**: fact\n- **N\u00c1ZOR**: my view\n  continued\n- plain", pat, colors, "bot")
+    assert [t for _l, t in out] == ["info", "opinion", "opinion", "bot"]  # the next plain bullet goes back to normal
+    assert compile_verdicts([], [], [], [], [])[0] is None  # no tags at all: nothing to colour
+
+
+def test_the_sample_and_the_local_config_both_define_the_opinion_tags_and_the_prompt_asks_for_them():
+    ui = CFG.section("ui")
+    assert "OPINION" in ui["verdict_opinion"] and "NAZOR" in ui["verdict_opinion"]
+    assert "OPINION" in CFG.section("prompts")["system"]  # the model is told to mark its own judgement

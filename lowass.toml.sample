@@ -152,10 +152,12 @@ alpha = 0.94
 font = "Segoe UI"
 font_size = 10
 # Answer lines that start with one of these verdict tags are coloured: red = the fact-check failed, green = confirmed,
-# violet = looked up and sure (INFO). Blue is reserved for translations. Other tags (UNVERIFIED, NEOVERENO) keep the normal colour.
+# violet = looked up and sure (INFO), yellow = the assistant's own opinion (not a verified fact). Blue is reserved for
+# translations. Other tags (UNVERIFIED, NEOVERENO) keep the normal colour.
 verdict_red = ["FALSE", "NEPRAVDA"]
 verdict_green = ["CONFIRMED", "POTVRZENO"]
 verdict_info = ["INFO"]
+verdict_opinion = ["OPINION", "NAZOR", "NÁZOR"]
 verdict_blue = []
 caption_lines = 4             # lines of the live captions (partial = grey, final = white, translation = blue)
 
@@ -244,6 +246,7 @@ LANGUAGE RULE (always apply): work and answer in the language of the conversatio
 - When the user types a question in the chat box, answer in the language of that question (other languages: English).
 Be very short: bullet points, no filler. Give facts with the source (ticket key, page title, URL). Say clearly when you could not verify something.
 Every finding is ONE bullet that STARTS with its verdict tag. Tag meaning: FALSE / NEPRAVDA = a claim in the conversation is wrong. CONFIRMED / POTVRZENO = a claim is right. INFO = you looked up something nobody on the call could recall and you are SURE of it. UNVERIFIED / NEOVERENO = you could not verify it. Never use INFO for guesses.
+When the user asks what YOU think, or you add your own judgement, write it as a separate bullet that STARTS with OPINION (Czech: NAZOR). It is never a verified fact, so never mix it into a CONFIRMED / INFO bullet.
 """
 auto = """New part of the conversation is below. Decide whether something deserves help right now: a factual claim that is doubtful or checkable, a name, ticket, page, number or term the user may want looked up, or a question the other side asked that you can answer from Jira/Confluence/web.
 If you check something, do it with the tools first. Report only findings that matter (max 5 short bullets, each with a verdict tag in the conversation language).

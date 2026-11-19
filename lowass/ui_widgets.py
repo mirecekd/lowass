@@ -25,7 +25,8 @@ from .verdict import color_lines
 
 STATS_COLORS = {"hot": "#b5f2a0", "ok": "#6a9955", "dim": "#7a7a7a", "err": "#f48771"}
 LOG_COLORS = {"you": "#9cdcfe", "bot": "#d4d4d4", "auto": "#dcdcaa", "err": "#f48771", "heard": "#808080",
-              "red": "#ff5c5c", "blue": "#4fc1ff", "green": "#7ed07e", "info": "#c586c0", "tr": "#4fc1ff"}
+              "red": "#ff5c5c", "blue": "#4fc1ff", "green": "#7ed07e", "info": "#c586c0", "opinion": "#ffd75f",
+              "tr": "#4fc1ff"}
 LOG_PREFIX = {"you": "> ", "auto": "[auto] ", "err": "[!] ", "heard": "~ ", "tr": "-> "}
 
 
