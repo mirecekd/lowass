@@ -111,7 +111,7 @@ def test_foreign_speech_is_translated_czech_is_not():
     deadline = time.time() + 2
     while not s.kinds("caption_tr") and time.time() < deadline:
         time.sleep(0.05)
-    assert s.kinds("caption_tr") == ["Protistrana\tCZ[Der Server ist ausgefallen]"]
+    assert s.kinds("caption_tr") == ["Protistrana\tCZ[Der Server ist ausgefallen]\tDer Server ist ausgefallen"]
     assert s.kinds("tr") == ["Protistrana: CZ[Der Server ist ausgefallen]"]  # also in the scrolling log, readable at normal speed
 
 
@@ -144,7 +144,7 @@ def test_the_button_turns_translation_on_and_off_at_any_time():
     v.translate_on = False
     v.final("Protistrana", "drei", "de-DE")
     v._pool.shutdown(wait=True)
-    assert tr.calls == 1 and s.kinds("caption_tr") in (["Protistrana\tCZ[zwei]"], [])  # off again before it was shown
+    assert tr.calls == 1 and s.kinds("caption_tr") in (["Protistrana\tCZ[zwei]\tzwei"], [])  # off again before it was shown
 
 
 def test_a_result_that_arrives_after_switching_off_is_not_shown():

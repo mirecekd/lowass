@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 
 BULLET = re.compile(r"^\s*(?:[-*\u2022]|\d+[.)])\s")
 
 
-def compile_verdicts(red: list[str], blue: list[str]) -> tuple[re.Pattern[str] | None, dict[str, str]]:
-    colors = {**dict.fromkeys(red, "red"), **dict.fromkeys(blue, "blue")}
+def compile_verdicts(
+    red: Sequence[str], blue: Sequence[str], green: Sequence[str] = (), info: Sequence[str] = (),
+) -> tuple[re.Pattern[str] | None, dict[str, str]]:
+    """tag -> colour name. Later groups win, so an older config that still lists CONFIRMED under `blue` is overridden
+    by `green`. Blue is also the colour of translations, so the defaults use green (confirmed) and violet (info)."""
+    colors: dict[str, str] = {}
+    for name, tags in (("red", red), ("blue", blue), ("green", green), ("info", info)):
+        colors.update(dict.fromkeys(tags, name))
     if not colors:
         return None, colors
     pat = re.compile(r"^[\s\-*\u2022>#_]*(?:\d+[.)]\s*)?[\s\-*\u2022>#_]*(" + "|".join(re.escape(t) for t in colors) + r")\b")

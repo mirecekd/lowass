@@ -41,9 +41,10 @@ def test_parse_caption_malformed_returns_empty():
 
 
 def test_parse_translation():
-    assert parse_translation("Bob\tahoj\tsvete") == ("Bob", "ahoj\tsvete")
+    assert parse_translation("Bob\tahoj\tsvete") == ("Bob", "ahoj", "svete")  # the third field is the source sentence
+    assert parse_translation("Bob\tahoj") == ("Bob", "ahoj", "")  # the old two-field form still works
     for bad in ("", "Bob", "\ttext"):
-        assert parse_translation(bad) == ("", "")
+        assert parse_translation(bad) == ("", "", "")
 
 
 def test_partial_replaces_partial():

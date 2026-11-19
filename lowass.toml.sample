@@ -62,6 +62,18 @@ mcphub_url = "https://mcphub.example.com/mcp/$smart"
 prompt = """Customer context: describe the customer, the topics and the key documents here.
 The conversation is mostly Czech. Verify technical facts against the official documentation before you report them."""
 
+[projects.private]
+name = "Private"
+mcphub_url = "https://mcphub.example.com/mcp/$smart"
+prompt = """Context: the user's own, personal matters (not work for any customer). Keep these facts apart from customer work.
+Do not invent personal details: if something cannot be found in the tools, report it as UNVERIFIED / NEOVERENO."""
+
+[projects.testing]
+name = "Testing"
+mcphub_url = "https://mcphub.example.com/mcp/$smart"
+prompt = """Context: a TEST session: the user is trying the assistant out, the conversation may be a video, a podcast or a demo and not a real meeting.
+Answer normally, but do not treat anything said as a real commitment, decision or customer fact."""
+
 [stt]
 # Speech-to-text provider. "transcribe" = Amazon Transcribe streaming (primary), "groq" = Groq Whisper (kept as fallback).
 provider = "transcribe"
@@ -129,10 +141,12 @@ y = 60
 alpha = 0.94
 font = "Segoe UI"
 font_size = 10
-# Answer lines that start with one of these verdict tags are coloured (red = the fact-check failed,
-# blue = looked up and sure / confirmed). Other tags (UNVERIFIED, NEOVERENO) keep the normal colour.
+# Answer lines that start with one of these verdict tags are coloured: red = the fact-check failed, green = confirmed,
+# violet = looked up and sure (INFO). Blue is reserved for translations. Other tags (UNVERIFIED, NEOVERENO) keep the normal colour.
 verdict_red = ["FALSE", "NEPRAVDA"]
-verdict_blue = ["CONFIRMED", "POTVRZENO", "INFO"]
+verdict_green = ["CONFIRMED", "POTVRZENO"]
+verdict_info = ["INFO"]
+verdict_blue = []
 caption_lines = 4             # lines of the live captions (partial = grey, final = white, translation = blue)
 
 # Buttons above the chat box. Each runs its prompt over the WHOLE meeting so far (not only the last minutes).

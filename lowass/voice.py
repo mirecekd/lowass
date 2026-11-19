@@ -61,7 +61,7 @@ class Voice:
     def _translate(self, speaker: str, text: str, lang: str | None) -> None:
         out = self.translator.translate(text, lang) if lang else None
         if out and self.translate_on and not self.paused():  # switched off while the request ran: show nothing
-            self.post("caption_tr", f"{speaker}\t{out}")
+            self.post("caption_tr", f"{speaker}\t{out}\t{text}")  # the source sentence pins the translation to its line
             self.post("tr", f"{speaker}: {out}")  # also into the scrolling log: the caption panel only holds a few lines
 
     def close(self) -> None:

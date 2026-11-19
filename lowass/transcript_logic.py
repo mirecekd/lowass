@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .popup_logic import Rect
+from .ui_parts import pick_line
 
 
 @dataclass
@@ -42,9 +43,9 @@ class TranscriptLines:
                 self.entries.remove(entry)
         del self.entries[:-self.keep]
 
-    def translate(self, speaker: str, text: str) -> None:
-        entry = self._last_final.get(speaker)
-        if entry is not None:
+    def translate(self, speaker: str, text: str, source: str = "") -> None:
+        entry = pick_line(self.entries, speaker, source, self._last_final.get(speaker))
+        if isinstance(entry, Entry):
             entry.translation = text
 
     def clear(self) -> None:

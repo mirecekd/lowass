@@ -67,7 +67,7 @@ Short version below; the step-by-step guide with checks and troubleshooting is i
 - Language: it answers in the language of the conversation (English or Czech); any other language is translated into English.
 - Model: pick it in the dropdown (list in `lowass.toml [models]`, default `global.anthropic.claude-haiku-5-5`; the list is yours to edit). The choice is remembered.
 - Project: one dropdown under the toolbar (customer A, customer B, ...). It switches the mcphub address and the project prompt (both in `lowass.toml [projects.<key>]`) and starts with a clean context. The choice is remembered.
-- Colours: answer lines starting with FALSE / NEPRAVDA are red, CONFIRMED / POTVRZENO / INFO are blue (INFO = looked up and sure).
+- Colours: answer lines starting with FALSE / NEPRAVDA are red, CONFIRMED / POTVRZENO are green, INFO is violet (looked up and sure). Blue is only for translations. The groups are `verdict_red`, `verdict_green`, `verdict_info` in `lowass.toml [ui]`.
 - Languages (speech): Czech, Slovak, German and English by default, more in `lowass.toml [transcribe].languages`. A language that is NOT in this list is not recognised: Transcribe then picks the closest listed one and writes nonsense (verified with Spanish: "Buenos diasodos la la visamos", labelled English, and no translation). Add its code (for example `"es-ES"`) and it is recognised and, with the Translate button on, translated into Czech. Nothing else has to be switched on. One dialect per language. Do not add many: in a test with six languages a short Spanish sentence was labelled Czech again, with five it was right, so list only the languages that really occur.
 - Type a question in the box: it sees the recent conversation as context.
 

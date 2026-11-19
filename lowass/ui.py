@@ -45,7 +45,8 @@ class FloatingWindow:
         self.on_submit: Callable[[str], None] = lambda _t: None
         self.on_check: Callable[[], None] = lambda: None
         self.on_screen: Callable[[], None] = lambda: None
-        self.verdict_pat, self.verdict_colors = compile_verdicts(cfg.get("verdict_red", []), cfg.get("verdict_blue", []))
+        self.verdict_pat, self.verdict_colors = compile_verdicts(
+            cfg.get("verdict_red", []), cfg.get("verdict_blue", []), cfg.get("verdict_green", []), cfg.get("verdict_info", []))
         font = (cfg["font"], cfg["font_size"])
         r = self.root
         r.title(f"{cfg['title']} - {__version__}")
@@ -105,14 +106,14 @@ class FloatingWindow:
         self._on_translate(on)
 
     def show_transcript(self, on: bool) -> None:
-        """Translate on = the transcript window opens left of the hint card; off = it closes."""
+        """Translate on = the transcript window opens (left of the hint card); off = it closes."""
         if on:
             self.transcript.open()
         else:
             self.transcript.close()
 
     def _geometry(self) -> Rect:
-        """Where the main window is: the hint card and the transcript window are placed next to it."""
+        """Where the main window is (the card and the transcript window sit next to it)."""
         r = self.root
         r.update_idletasks()
         return Rect(r.winfo_x(), r.winfo_y(), r.winfo_width(), r.winfo_height())
@@ -131,8 +132,7 @@ class FloatingWindow:
         self.q.put((kind, text))
 
     def _screen(self) -> None:
-        """The Screen button / hotkey: hide the window so it is not in the picture, then the app grabs the screen
-        and posts 'unhide' (also on failure)."""
+        """The Screen button: hide the window, then the app grabs the screen and posts 'unhide'."""
         self.root.withdraw()
         self.root.after(300, self.on_screen)
 

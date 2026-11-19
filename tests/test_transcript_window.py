@@ -45,3 +45,30 @@ def test_window_sits_left_of_the_card_which_sits_left_of_the_main_window():
 def test_window_stays_on_screen_when_there_is_no_room():
     x, y = place_transcript(Rect(300, 900, 460, 760), 340, 420, 520, 1920, 1080)
     assert x >= 0 and 0 <= y <= 1080 - 48 - 520
+
+
+def test_a_late_translation_lands_on_its_own_sentence_not_on_the_newest_one():
+    """Screenshot bug: the translation arrives about a second late, when the next sentence is already final."""
+    t = TranscriptLines()
+    for text in ("A: Sie sind passiv", "B: Daher kommen wir zu Level 2", "C: Du kombinierst dein LLM"):
+        t.update("Pro", "final", text)
+    t.translate("Pro", "preklad B", "B: Daher kommen wir zu Level 2")  # B is translated AFTER C is final
+    t.translate("Pro", "preklad A", "A: Sie sind passiv")
+    assert [(e.text[0], e.translation) for e in t.entries] == [("A", "preklad A"), ("B", "preklad B"), ("C", "")]
+
+
+def test_translation_without_a_source_still_goes_to_the_newest_final_line():
+    t = TranscriptLines()
+    t.update("Pro", "final", "A")
+    t.update("Pro", "final", "B")
+    t.translate("Pro", "x")  # old two-field message
+    assert [e.translation for e in t.entries] == ["", "x"]
+
+
+def test_the_same_sentence_said_twice_gets_one_translation_each():
+    t = TranscriptLines()
+    t.update("Pro", "final", "Das heisst")
+    t.update("Pro", "final", "Das heisst")
+    t.translate("Pro", "To znamena", "Das heisst")
+    t.translate("Pro", "To znamena 2", "Das heisst")
+    assert [e.translation for e in t.entries] == ["To znamena 2", "To znamena"]

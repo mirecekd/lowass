@@ -12,11 +12,12 @@ CFG = config.load(config.ROOT, "lowass.toml.sample")  # the sample is the tested
 
 def test_projects_have_url_and_prompt():
     projs = CFG.projects()
-    assert set(projs) == {"general", "customer_a", "customer_b"}
+    assert set(projs) == {"general", "customer_a", "customer_b", "private", "testing"}
     for key, p in projs.items():
         assert p["name"] and p["mcphub_url"].startswith("https://") and len(p["prompt"]) > 100, key
     names, selected = CFG.project()
-    assert names == {"general": "General", "customer_a": "Customer A", "customer_b": "Customer B"} and selected == "general"
+    assert names == {"general": "General", "customer_a": "Customer A", "customer_b": "Customer B",
+                     "private": "Private", "testing": "Testing"} and selected == "general"
 
 
 def test_project_choice_is_saved_and_ignored_when_unknown(tmp_path, monkeypatch):
@@ -109,3 +110,11 @@ def test_version_is_yyyymmdd_dot_counter_and_next_one_counts_todays_tags():
     assert re.fullmatch(r"\d{8}\.\d+", __version__)
     assert next_version([], "20261119") == "20261119.1"
     assert next_version(["20261119.1", "20261119.3", "20261118.9", "v1"], "20261119") == "20261119.4"
+
+
+def test_confirmed_is_green_info_is_violet_and_translations_keep_blue():
+    pat, colors = compile_verdicts(["FALSE"], [], ["CONFIRMED", "POTVRZENO"], ["INFO"])
+    assert [t for _l, t in color_lines("- CONFIRMED: ok\n- INFO: seen\n- FALSE: no", pat, colors, "bot")] == ["green", "info", "red"]
+    # an OLD config that still lists CONFIRMED under blue: the new group wins, so the colour is still not blue
+    _p, old = compile_verdicts(["FALSE"], ["CONFIRMED", "INFO"], ["CONFIRMED"], ["INFO"])
+    assert old["CONFIRMED"] == "green" and old["INFO"] == "info"

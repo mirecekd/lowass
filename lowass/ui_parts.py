@@ -28,12 +28,29 @@ def parse_caption(text: str) -> tuple[str, str, str]:
     return parts[0], parts[1], parts[2]
 
 
-def parse_translation(text: str) -> tuple[str, str]:
-    """'Speaker<TAB>translation' -> (speaker, translation); malformed input gives empty strings."""
-    parts = text.split("\t", 1)
-    if len(parts) != 2 or not parts[0]:
-        return "", ""
-    return parts[0], parts[1]
+def parse_translation(text: str) -> tuple[str, str, str]:
+    """'Speaker<TAB>translation<TAB>source sentence' -> (speaker, translation, source). The source says which sentence the
+    translation belongs to (it arrives about a second later, when the next sentence may already be on screen); it is
+    empty in the old two-field form. Malformed input gives empty strings."""
+    parts = text.split("\t", 2)
+    if len(parts) < 2 or not parts[0]:
+        return "", "", ""
+    return parts[0], parts[1], parts[2] if len(parts) == 3 else ""
+
+
+def pick_line(lines: list, speaker: str, source: str, fallback: object) -> object:
+    """The newest finished line of `speaker` whose text is `source` and that has no translation yet; `fallback` when the
+    source is unknown (old form) or no such line is left."""
+    if source:
+        for line in reversed(lines):
+            if _get(line, "speaker") == speaker and _get(line, "text") == source and not _get(line, "translation") \
+                    and _get(line, "final", _get(line, "state") == "final"):
+                return line
+    return fallback
+
+
+def _get(line: object, key: str, default: object = "") -> object:
+    return line.get(key, default) if isinstance(line, dict) else getattr(line, key, default)
 
 
 class Captions:
@@ -62,9 +79,9 @@ class Captions:
                 self._lines.remove(line)
         del self._lines[:-self.max_lines]  # every line shows as at least one row, older ones are never visible
 
-    def translation(self, speaker: str, text: str) -> None:
-        line = self._last_final.get(speaker)
-        if line is not None:
+    def translation(self, speaker: str, text: str, source: str = "") -> None:
+        line = pick_line(self._lines, speaker, source, self._last_final.get(speaker))
+        if isinstance(line, dict):
             line["translation"] = text
 
     def rows(self) -> list[tuple[str, str]]:

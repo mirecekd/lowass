@@ -54,9 +54,9 @@ class TranscriptWindow:
             self._render()
 
     def translation(self, text: str) -> None:
-        speaker, line = parse_translation(text)
+        speaker, line, source = parse_translation(text)
         if speaker:
-            self._lines.translate(speaker, line)
+            self._lines.translate(speaker, line, source)
             self._render()
 
     def clear(self) -> None:
