@@ -90,9 +90,12 @@ mode = "live"
 # Czech, Slovak, German, English by default. One dialect per language (no en-US together with en-GB).
 # With more than one language Transcribe identifies the language itself. Any code from the AWS "supported languages"
 # page with streaming works, e.g. "pl-PL", "hu-HU", "fr-FR".
+# THE ORDER MATTERS for short sentences (measured): the FIRST language wins when Transcribe cannot tell, so a short German
+# sentence is taken for Czech when Czech is first. The language dropdown in the window moves the chosen language to the
+# front for the next sentence; "default" keeps the order written here.
 # A language that is NOT listed is not recognised (the closest listed one is guessed and the text is nonsense), so add
 # every language that really occurs, e.g. "es-ES". Keep the list short: with six languages the detection gets worse.
-languages = ["cs-CZ", "sk-SK", "de-DE", "en-US"]
+languages = ["cs-CZ", "sk-SK", "en-US", "de-DE"]
 timeout_sec = 30
 
 [translate]
@@ -102,6 +105,10 @@ enabled = true                      # false = the button does nothing and no Tra
 on_start = false                    # the state of the Translate button when LOWASS starts
 target = "cs"
 understood = ["cs", "sk", "en"]    # languages you understand: no translation for them. Add "de" if you do not need German translated.
+# What is translated by default (the transcript window has FROM and TO dropdowns to change it at any time; "default" there
+# means exactly this pair). The sentence must be LABELLED with the FROM language by the recognition (see [transcribe] languages).
+from_default = "de-DE"
+to_default = "cs-CZ"
 
 [wake]
 # A sentence of YOURS (the microphone) that starts with one of these phrases, or ends with one, goes to the assistant as a

@@ -5,8 +5,9 @@ from __future__ import annotations
 import sys
 import tkinter as tk
 from collections.abc import Callable
-from tkinter import scrolledtext
+from tkinter import scrolledtext, ttk
 
+from .languages import DEFAULT, translate_from_choices, translate_to_choices
 from .layout import geometry_string
 from .popup import _disable_activation
 from .popup_logic import Rect
@@ -25,9 +26,12 @@ class TranscriptWindow:
     """Never takes the keyboard focus (same trick as the hint card); can be dragged and closed with the Translate button."""
 
     def __init__(self, root: tk.Tk, slot: Callable[[], Rect], font: tuple[str, int],
-                 on_closed: Callable[[], None] = lambda: None):
+                 on_closed: Callable[[], None] = lambda: None, languages: list[str] | None = None,
+                 on_rule: Callable[[str, str], None] = lambda _f, _t: None):
         self._root, self._slot, self._font = root, slot, font
         self._on_closed = on_closed  # the user closed the window with the X: the Translate button must go off too
+        self._languages, self._on_rule = list(languages or []), on_rule  # FROM / TO dropdowns (none without languages)
+        self._from, self._to = tk.StringVar(master=root, value=DEFAULT), tk.StringVar(master=root, value=DEFAULT)
         self._lines = TranscriptLines()
         self._window: tk.Toplevel | None = None
         self._text: scrolledtext.ScrolledText | None = None
@@ -76,6 +80,7 @@ class TranscriptWindow:
         window.attributes("-topmost", True)
         window.configure(bg=BACKGROUND)
         window.protocol("WM_DELETE_WINDOW", self._user_close)  # the X = the Translate button off; the button opens it again
+        self._rule_bar(window)
         text = scrolledtext.ScrolledText(window, wrap="word", state="disabled", bg="#252526", fg=FINAL_COLOR,
                                          font=self._font, relief="flat", borderwidth=0, highlightthickness=0)
         text.pack(fill="both", expand=True, padx=4, pady=4)
@@ -85,6 +90,20 @@ class TranscriptWindow:
         if sys.platform == "win32":
             _disable_activation(window)
         return window
+
+    def _rule_bar(self, window: tk.Toplevel) -> None:
+        """FROM -> TO: what is translated. 'default' = the configured pair (de-DE to cs-CZ); FROM also offers 'any'."""
+        if not self._languages:
+            return
+        bar = tk.Frame(window, bg=BACKGROUND)
+        bar.pack(fill="x", padx=4, pady=(4, 0))
+        tk.Label(bar, text="FROM", bg=BACKGROUND, fg=FINAL_COLOR, font=self._font).pack(side="left")
+        for var, values in ((self._from, translate_from_choices(self._languages, "x")), (self._to, translate_to_choices(self._languages))):
+            box = ttk.Combobox(bar, textvariable=var, values=values, state="readonly", font=self._font, width=9)
+            box.pack(side="left", padx=(4, 8))
+            box.bind("<<ComboboxSelected>>", lambda _e: self._on_rule(self._from.get(), self._to.get()))
+            if var is self._from:
+                tk.Label(bar, text="TO", bg=BACKGROUND, fg=FINAL_COLOR, font=self._font).pack(side="left")
 
     def _render(self) -> None:
         if self._text is None or not self.is_open():

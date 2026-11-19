@@ -19,8 +19,10 @@ log = logging.getLogger("lowass.listener")
 class Listener:
     def __init__(self, cfg, on_text: Callable[[str, str], None], stats=None,
                  on_error: Callable[[str], None] | None = None, login: Callable[[], bool] | None = None,
-                 voice=None, paused: Callable[[], bool] | None = None):
+                 voice=None, paused: Callable[[], bool] | None = None,
+                 on_transcriber: Callable[[object], None] | None = None):
         self.cfg, self.on_text, self.stats, self.on_error, self.login = cfg, on_text, stats, on_error, login
+        self.on_transcriber = on_transcriber  # told about the Transcriber (the language dropdown changes its order)
         self.voice, self.paused = voice, paused  # voice: lowass.voice.Voice (live mode); paused: Private mode
         self.live = None
         self.stop = threading.Event()
@@ -75,6 +77,8 @@ class Listener:
         if voice is None:
             return False
         tr = Transcriber(self.cfg.section("transcribe"))
+        if self.on_transcriber:
+            self.on_transcriber(tr)
 
         def failed(exc: BaseException) -> None:
             if isinstance(exc, LOGIN_ERRORS) and self.login is not None:
@@ -97,6 +101,8 @@ class Listener:
         if provider == "transcribe":
             from .transcribe import Transcriber, transcribe_worker
             tr = Transcriber(self.cfg.section("transcribe"))
+            if self.on_transcriber:
+                self.on_transcriber(tr)
             threading.Thread(target=transcribe_worker, daemon=True, name="stt",
                              args=(self.audio_q, self.stop, tr, self.on_text, self.stats, self.on_error, self.login)).start()
         elif provider == "groq":

@@ -12,6 +12,7 @@ from .facts_window import FactsWindow
 from .popup import HintCard
 from .popup_logic import Rect
 from .transcript_window import TranscriptWindow
+from .ui_callbacks import Callbacks
 from .ui_parts import BACKGROUND
 from .ui_place import check_placed, main_geometry, side_slots, start_geometry, work_area
 from .ui_poll import make_handlers
@@ -27,20 +28,17 @@ from .verdict import compile_verdicts
 
 
 class FloatingWindow:
-    def __init__(self, cfg: dict, on_toggle_auto: Callable[[bool], None], auto: bool,
-                 models: list[str], model: str, on_model: Callable[[str], None],
-                 on_clear: Callable[[], None] = lambda: None,
-                 projects: dict[str, str] | None = None, project: str = "",
-                 on_project: Callable[[str], None] = lambda _key: None, *,
-                 shortcuts: list[dict] | None = None,
-                 on_shortcut: Callable[[str, str], None] = lambda _prompt, _label: None,
-                 on_private: Callable[[bool], None] = lambda _on: None,
-                 on_translate: Callable[[bool], None] = lambda _on: None, translate_on: bool = False,
-                 hint_ttl: float = 25.0, on_copy: Callable[[str], None] | None = None):
+    def __init__(self, cfg: dict, cb: Callbacks, auto: bool, models: list[str], model: str,
+                 projects: dict[str, str] | None = None, project: str = "", *, languages: list[str] | None = None,
+                 shortcuts: list[dict] | None = None, translate_on: bool = False, hint_ttl: float = 25.0,
+                 default_rule: tuple[str, str] = ("de-DE", "cs-CZ")):
         self.root = tk.Tk()
         self.q: queue.Queue[tuple[str, str]] = queue.Queue()
-        self.on_toggle_auto = on_toggle_auto
-        self.on_clear = on_clear
+        self.cb = cb
+        self.on_clear = cb.on_clear
+        on_toggle_auto, on_model, on_project, on_shortcut, on_private = (
+            cb.on_toggle_auto, cb.on_model, cb.on_project, cb.on_shortcut, cb.on_private)
+        on_translate, on_copy = cb.on_translate, cb.on_copy
         # set by bind(): the window is built before the code that does the work
         self.on_submit: Callable[[str], None] = lambda _t: None
         self.on_check: Callable[[], None] = lambda: None
@@ -59,9 +57,10 @@ class FloatingWindow:
 
         tb = build_toolbar(
             r, font, auto=auto, models=models, model=model, projects=dict(projects or {}), project=project,
-            translate_on=translate_on, on_clear=self._clear_all, on_screen=self._screen, on_auto=on_toggle_auto,
-            on_model=on_model, on_private=on_private, on_translate=self._translate_toggled, on_facts=self._facts_toggled,
-            on_project=lambda name: on_project(self._key_of(name)))
+            translate_on=translate_on, languages=list(languages or []), on_clear=self._clear_all, on_screen=self._screen,
+            on_auto=on_toggle_auto, on_model=on_model, on_private=on_private, on_translate=self._translate_toggled,
+            on_facts=self._facts_toggled, on_project=lambda name: on_project(self._key_of(name)),
+            on_language=cb.on_language)
         self.private, self.translate, self.facts_btn = tb.private, tb.translate, tb.facts
         self.auto_var, self.model_var, self.project_var = tb.auto_var, tb.model_var, tb.project_var
         self._project_keys = dict(projects or {})
@@ -86,7 +85,8 @@ class FloatingWindow:
         self.card = HintCard(r, self._geometry, on_copy or self._copy, ttl_sec=hint_ttl,
                              on_inline=lambda t: self._append("auto", t), area=self._area)
         self._on_translate = on_translate
-        self.transcript = TranscriptWindow(r, lambda: side_slots(r)[0], font, self._transcript_closed)
+        self.transcript = TranscriptWindow(r, lambda: side_slots(r)[0], font, self._transcript_closed,
+                                           list(languages or []), cb.on_rule)
         self.facts = FactsWindow(r, lambda: side_slots(r)[1], font, self.facts_btn.set)
         if translate_on:
             self.show_transcript(True)

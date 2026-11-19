@@ -29,9 +29,9 @@ def make_wav(n=16000, rate=16000, channels=1):
     return buf.getvalue()
 
 
-def test_default_languages_are_cs_sk_de_en_and_valid():
+def test_default_languages_are_cs_sk_en_de_and_valid():
     langs = CFG.section("transcribe")["languages"]
-    assert langs == ["cs-CZ", "sk-SK", "de-DE", "en-US"]
+    assert langs == ["cs-CZ", "sk-SK", "en-US", "de-DE"]  # German last: the order is a prior for short sentences
     assert check_languages(list(langs)) == langs
     assert CFG.section("stt")["provider"] == "transcribe"
 

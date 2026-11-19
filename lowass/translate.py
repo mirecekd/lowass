@@ -5,6 +5,8 @@ import re
 
 import boto3
 
+from .languages import TranslateRule
+
 log = logging.getLogger('lowass.translate')
 
 MAX_CHUNK_BYTES = 9000
@@ -58,22 +60,28 @@ def split_text(text: str, limit: int = MAX_CHUNK_BYTES) -> list[str]:
 
 class Translator:
     def __init__(self, profile: str, region: str, target: str = 'cs',
-                 understood: tuple[str, ...] = ('cs', 'sk', 'en'), client=None):
+                 understood: tuple[str, ...] = ('cs', 'sk', 'en'), client=None, rule: TranslateRule | None = None):
         self.profile = profile
         self.region = region
         self.target = target
         self.understood = understood
         self._client = client
+        # What is translated and into what. None = the old behaviour (everything you do not understand, into `target`).
+        # The transcript window's FROM / TO dropdowns replace it at any time (read at every sentence).
+        self.rule = rule
 
     def needed(self, lang_code: str | None) -> bool:
         if not lang_code:
             return False
+        if self.rule is not None:
+            return self.rule.wants(lang_code)
         base = _base(lang_code)
         return base not in self.understood and base != self.target
 
     def translate(self, text: str, lang_code: str) -> str | None:
         if not self.needed(lang_code) or not text.strip():
             return None
+        target = to_translate_code(self.rule.target) if self.rule is not None else self.target
         try:
             client = self._get_client()
             source = to_translate_code(lang_code)
@@ -81,7 +89,7 @@ class Translator:
             for chunk in split_text(text.strip()):
                 response = client.translate_text(
                     Text=chunk, SourceLanguageCode=source,
-                    TargetLanguageCode=self.target)
+                    TargetLanguageCode=target)
                 parts.append(response['TranslatedText'])
             return ' '.join(parts)
         except Exception:

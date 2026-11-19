@@ -11,10 +11,12 @@ from .config import Config
 from .controls import Controls
 from .debug import Stats, install_excepthook
 from .flow import Flow
+from .lang_control import LanguageControl
 from .memory import make_search_tool, open_meeting
 from .session import Session
 from .sso_login import LoginManager
 from .transcript import Transcript
+from .ui_build import build_window
 from .voice import build_voice
 
 log = logging.getLogger("lowass.app")
@@ -33,13 +35,7 @@ class App:
         self.listener = None
         self.stats = Stats()
         self.dbg = cfg.section("debug")
-        from .ui import FloatingWindow
-        self.ui = FloatingWindow(cfg.section("ui"), self._set_auto, bool(a["auto"]), models, self.model,
-                                 self._set_model, self.clear_context, projects, self.project, self.switch_project,
-                                 shortcuts=cfg.shortcuts(), on_shortcut=self._shortcut, on_private=self._private,
-                                 on_translate=self._translate, hint_ttl=float(cfg.section("hint").get("card_sec", 25)),
-                                 translate_on=bool(cfg.section("translate").get("on_start", False)
-                                                   and cfg.section("translate").get("enabled", True)))
+        self.ui = build_window(cfg, self, bool(a["auto"]), models, self.model, projects, self.project)
         self.meeting = open_meeting(cfg, self.project, lambda m: self.ui.post("err", m))
         self.session.extra_tools = [make_search_tool(self.meeting.store, lambda: self.project)]
         self.flow = Flow(cfg, self.ui.post, self.session, self.transcript, self.meeting, self.stats, self.busy,
@@ -48,6 +44,7 @@ class App:
         self.controls = Controls(cfg, self.ui.post, self.flow, self.login)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
         self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask)
+        self.lang = LanguageControl(self.voice, self.ui.post)
         install_excepthook(self.ui.post)
         self.assist = Assist(cfg, self.flow, self.meeting, self.ui.post, lambda: self.model)
         self.voice.tap = self.assist.tap
@@ -56,12 +53,6 @@ class App:
         """The Translate button: translate foreign speech only while it is on."""
         self.voice.translate_on = on
         self.ui.post("status", "translation on" if on else "translation off: only transcribing")
-
-    def _shortcut(self, prompt: str, label: str) -> None:
-        self.controls.on_shortcut(prompt, label)
-
-    def _private(self, on: bool) -> None:
-        self.controls.set_private(on)
 
     def _set_auto(self, value: bool) -> None:
         self.flow.auto = value
@@ -133,7 +124,7 @@ class App:
         if self.cfg.section("stt").get("provider") == "transcribe":
             self.login.begin()  # no valid AWS login: the device-code page opens at once, not at the first sentence
         self.listener = Listener(self.cfg, self.on_text, self.stats, lambda msg: self.ui.post("err", msg),
-                                 self.login.begin, self.voice, self.flow.private.is_set)
+                                 self.login.begin, self.voice, self.flow.private.is_set, self.lang.attach)
         try:
             names = self.listener.start()
             self.ui.post("status", "listening")

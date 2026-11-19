@@ -30,6 +30,7 @@ from botocore.exceptions import (
 )
 
 from . import crt_patch
+from .languages import DEFAULT, order_for
 
 log = logging.getLogger("lowass.transcribe")
 
@@ -95,10 +96,17 @@ class Transcriber:
     def __init__(self, cfg: dict):
         self.profile = cfg["profile"]
         self.region = cfg["region"]
-        self.langs = check_languages(list(cfg["languages"]))
+        self.configured = check_languages(list(cfg["languages"]))  # the order of lowass.toml = the meaning of "default"
+        self.choice = DEFAULT  # the language dropdown: 'default' or one configured code that goes to the FRONT of the list
         self.timeout = float(cfg.get("timeout_sec", 30))
         crt_patch.apply()  # harmless CANCELLED tracebacks of the library are silenced (see crt_patch.py)
         self._session = boto3.Session(profile_name=self.profile, region_name=self.region)
+
+    @property
+    def langs(self) -> list[str]:
+        """The language list for the NEXT stream. Read at every open, so a change of the dropdown takes effect with the
+        next sentence (a running sentence keeps the list it started with)."""
+        return order_for(self.choice, self.configured)
 
     def credentials(self) -> Any:
         """Frozen credentials of the profile (botocore refreshes SSO ones itself)."""
