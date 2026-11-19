@@ -1,0 +1,15 @@
+.git/
+.env
+lowass.toml
+.lowass-state.json
+.venv/
+memory-bank/
+.briefs/
+.ovis/
+data/
+debug-wav/
+*.log
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.deb

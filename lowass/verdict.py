@@ -1,0 +1,30 @@
+# lowass/verdict.py
+"""Colour of an answer line from its leading verdict tag (FALSE, CONFIRMED, ...). Pure, no tkinter."""
+from __future__ import annotations
+
+import re
+
+BULLET = re.compile(r"^\s*(?:[-*\u2022]|\d+[.)])\s")
+
+
+def compile_verdicts(red: list[str], blue: list[str]) -> tuple[re.Pattern[str] | None, dict[str, str]]:
+    colors = {**dict.fromkeys(red, "red"), **dict.fromkeys(blue, "blue")}
+    if not colors:
+        return None, colors
+    pat = re.compile(r"^[\s\-*\u2022>#_]*(?:\d+[.)]\s*)?[\s\-*\u2022>#_]*(" + "|".join(re.escape(t) for t in colors) + r")\b")
+    return pat, colors
+
+
+def color_lines(text: str, pat: re.Pattern[str] | None, colors: dict[str, str], default: str) -> list[tuple[str, str]]:
+    """[(line, tag)]: a line with a known tag gets its colour, wrapped continuation lines inherit it,
+    the next bullet or blank line without a tag goes back to `default`."""
+    out: list[tuple[str, str]] = []
+    current = default
+    for line in text.split("\n"):
+        m = pat.match(line) if pat else None
+        if m:
+            current = colors[m.group(1)]
+        elif BULLET.match(line) or not line.strip():
+            current = default
+        out.append((line, current))
+    return out

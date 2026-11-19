@@ -1,0 +1,9 @@
+numpy
+scipy
+requests
+strands-agents[openai]
+amazon-transcribe
+python-dotenv
+mss
+pillow
+pyaudiowpatch; sys_platform == "win32"

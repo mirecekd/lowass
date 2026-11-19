@@ -1,0 +1,17 @@
+# .gitignore - nothing private goes to git: secrets, the local config, meeting data, notes
+.env
+lowass.toml
+.lowass-state.json
+.venv/
+memory-bank/
+.briefs/
+.ovis/
+data/
+debug-wav/
+*.log
+lowass.log*
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.deb

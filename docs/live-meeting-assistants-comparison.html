@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!-- docs/live-meeting-assistants-comparison.html -->
+<html lang="cs" data-design="copper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LOWASS vs. live meeting asistenti: co chybi a jak byt neviditelny</title>
+<style>
+  /* Copper design, Copper design. Self-contained: no external fonts, scripts or images. */
+  :root { --paper: #202323; --ink: #eee9e1; --muted: #bdbcb5; --line: #545854; --accent: #e7ac80; --surface: #303635; --soft: #f1d6b4; --warn: #e0b35a; --bad: #e08a7a; --good: #a9c98f; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 4px; }
+  a:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .shell { max-width: 60rem; margin: auto; padding: 0 32px 72px; }
+  .mono, code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .meta { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); display: flex; flex-wrap: wrap; gap: 8px 24px; padding: 28px 0 20px; border-bottom: 1px solid var(--line); }
+  .meta span:first-child::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-right: 10px; }
+  h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; letter-spacing: -.05em; font-weight: 500; margin: 36px 0 12px; }
+  .lead { color: var(--muted); font-size: 17px; max-width: 46rem; margin: 0 0 8px; }
+  h2 { color: var(--accent); font-size: 22px; letter-spacing: -.02em; font-weight: 500; margin: 48px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 28px 0 6px; color: var(--soft); }
+  p { margin: 0 0 14px; }
+  ul, ol { padding-left: 1.3rem; margin: 0 0 16px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; font-weight: 600; }
+  code { background: var(--surface); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; font-size: .88em; color: var(--soft); }
+  pre { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; color: var(--ink); }
+  .table-wrap { overflow-x: auto; margin: 16px 0 20px; border: 1px solid var(--line); border-radius: 8px; border-top: 3px solid #b38e6b; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  th { background: var(--surface); color: var(--accent); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; }
+  .callout > :last-child { margin-bottom: 0; }
+  .callout .label { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .callout.warn { border-left-color: var(--warn); } .callout.warn .label { color: var(--warn); }
+  .callout.bad { border-left-color: var(--bad); } .callout.bad .label { color: var(--bad); }
+  .callout.good { border-left-color: var(--good); } .callout.good .label { color: var(--good); }
+  .verdict { font-size: 19px; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  @media (max-width: 640px) { .shell { padding: 0 18px 48px; } }
+  @media print {
+    :root { --paper: #fff; --ink: #222; --muted: #555; --line: #ccc; --accent: #9a5a2c; --surface: #f4f1ec; --soft: #5b3a1e; }
+    body { font-size: 11pt; } strong { color: #000; } .table-wrap { border-top-color: #9a5a2c; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="meta mono"><span>Analyza</span><span>2026-11-19</span><span>LOWASS v0.1.0 vs. LMA, Cluely, Natively, Glass, Pluely, meeting-copilot</span></div>
+
+<h1>LOWASS: co umi jini live asistenti a co nam chybi</h1>
+<p class="lead">LOWASS je v jadru dobry (fact-check s nastroji, pamet meetingu, mcphub), ale zatim neni neviditelny a umi jen jeden typ pomoci. Nejvetsi mezera je stealth: okno ted je jen <code>-topmost</code> + <code>-alpha</code>, takze ho pri sdileni obrazovky uvidi vsichni.</p>
+
+<h2>Zaver</h2>
+<div class="callout verdict"><span class="label">Verdict</span>
+<p><strong>1. Neviditelnost je z velke casti jedna zmena v ui.py</strong> (<code>SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)</code>, Windows 10 2004+), ale okno musi navic zmizet z taskbaru a Alt+Tab, nesmi brat fokus a nesmi se na nej nutit mysi (pohyb kurzoru mimo sdilenou plochu prozradi).</p>
+<p><strong>2. "Chytrost":</strong> LOWASS jen kontroluje fakta. Konkurence navic radi, <em>co rict</em> (otazka na tebe, namitka, ukol), drzi prubezne shrnuti a fakta schuzky, ma znalostni bazi nad tvymi dokumenty a cte sdilene slidy. To je nejvetsi funkcni mezera.</p>
+<p><strong>3. Co LOWASS ma a ostatni ne:</strong> cteni z Jira/Confluence/GitLab pres mcphub (agent s nastroji a read-only guard), projekty s vlastnim promptem, pamet napric meetingy s vektorovym hledanim v cestine/nemcine/anglictine.</p></div>
+
+<h2>1. Srovnani: kdo co umi</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Nastroj</th><th>Typ</th><th>Live pomoc behem hovoru</th><th>Stealth</th><th>Poznamka</th></tr></thead>
+<tbody>
+<tr><td>LOWASS v0.1.0</td><td>Lokalni Windows okno, mic + loopback</td><td>Fact-check s nastroji, chat, hotkey, screenshot</td><td>Zadny (topmost + alpha)</td><td>Bez transkriptu v UI, read-only nastroje</td></tr>
+<tr><td>AWS LMA (aws-samples, v0.4.0)</td><td>AWS stack; bot nebo Chrome extension nebo Desktop Capture App</td><td>Agent s nastroji (meeting, minule meetingy, dokumenty, web), quick actions, otazky z chatu meetingu, hlasovy asistent a tlumocnik</td><td>Ne: bot se hlasi, ma consent notice</td><td>Diarizace, preklad do 75+ jazyku, agenda, slidy s OCR, MCP klient i server, retence</td></tr>
+<tr><td>Cluely</td><td>Komercni overlay</td><td>Odpovedi, poznamky, dalsi kroky; vidi obrazovku i zvuk</td><td>Ano, "invisible" prepinac; nejde na schuzku jako bot</td><td>Problem povesti (zkousky, pohovory)</td></tr>
+<tr><td>Natively</td><td>Overlay, "open source" ale source-available, jen osobni pouziti</td><td>Live prepis, poznamky, lokalni RAG, BYOK</td><td>Nejdal: vsechna okna chranena, skryty tooltipy/dialogy/notifikace, bez ikony v taskbaru, bez analytiky, stealth psani</td><td>Dobry vzor pro to, co vsechno musi byt skryte</td></tr>
+<tr><td>Glass (pickle-com)</td><td>OSS overlay, 7,5k hvezd</td><td>Sleduje obrazovku a poslouchá</td><td>Ano (zachycení vynechano)</td><td>Posledni push 10/2025, spise opusteny</td></tr>
+<tr><td>cheating-daddy / Pluely</td><td>OSS overlay (Electron, resp. GPL-3.0 Tauri)</td><td>Odpovedi z obrazovky a zvuku, BYOK</td><td>Ano; Pluely tvrdi, ze resi problem s fokusem</td><td>Aktivni projekty, dobry zdroj napadu</td></tr>
+<tr><td>masrisystems/meeting-copilot</td><td>Lokalni Windows/Linux/macOS, mic + WASAPI loopback (stejna architektura jako LOWASS)</td><td>Proaktivni navrhy odpovedi na otazky, namitky a ukoly; push-to-ask; prubezne shrnuti po 5 min; sheet faktu</td><td>Ne (viditelne okno, jen vzdy nahore a pruhlednost)</td><td>Lokalni faster-whisper, RAG nad vlastnimi poznamkami, Ollama fallback, preklad</td></tr>
+<tr><td>Fathom, tl;dv, Avoma, Fellow, MeetGeek, Otter, Fireflies, Granola, Read AI</td><td>Zapisovatele po meetingu</td><td>Temer zadna; zdroj ukazuje, ze jsou urcene na zapis, shrnuti a CRM, ne na zivou pomoc</td><td>Bot-free rezim maji Granola, Otter, Fireflies; ostatni bot</td><td>Silne integrace (CRM, Slack, Zapier), clipy, analytika</td></tr>
+</tbody>
+</table></div>
+
+<h2>2. Neviditelnost: co presne udelat</h2>
+<p>Overlay se pred ostatnimi skryva jednim systemovym priznakem okna. Meeting aplikace dostavaji obraz od operacniho systemu a vynechane okno v nem neni. Samotny priznak ale nestaci: skryva jen to, co jde do sdileni a nahravky.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Zmena</th><th>Proc</th><th>Stav v LOWASS</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td><code>SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE=0x11)</code> pres ctypes. U tkinteru je potreba <code>GetParent(root.winfo_id())</code>, protoze <code>winfo_id()</code> vraci vnitrni okno.</td><td>Okno nejde do sdileni obrazovky ani nahravky. Na Windows pred 10 2004 se misto toho ukaze cerny obdelnik.</td><td>Chybi</td></tr>
+<tr><td>S2</td><td>Totez pro vsechna pomocna okna: dropdown u <code>ttk.Combobox</code> je samostatne okno, stejne tak dialogy a tooltipy.</td><td>Natively to resi explicitne: zapomenute vedlejsi okno se ve sdileni objevi.</td><td>Chybi (nejpravdepodobnejsi slabina; je to usudek, neoveren test)</td></tr>
+<tr><td>S3</td><td><code>WS_EX_TOOLWINDOW</code> (a bez <code>WS_EX_APPWINDOW</code>), pripadne <code>WS_EX_NOACTIVATE</code>.</td><td>Okno nema tlacitko v taskbaru ani v Alt+Tab a nebere fokus z Teams.</td><td>Chybi</td></tr>
+<tr><td>S4</td><td>Click-through (<code>WS_EX_TRANSPARENT | WS_EX_LAYERED</code>) a ovladani jen hotkeyem; hotkey pro okamzite skryti/zobrazeni.</td><td>Pri sdileni obrazovky prozradi pohyb mysi mimo sdilenou plochu. Zadavani do chatu kradene fokus oknu schuzky.</td><td>Hotkeys jsou (Ctrl+Alt+L/Space/S); skryt/click-through chybi</td></tr>
+<tr><td>S5</td><td>Tlacitko Screen: po S1 uz neni treba okno schovavat (to ted blika).</td><td>Zadne bliknuti pri sdilene obrazovce.</td><td>Ted okno skryva na dobu snimku</td></tr>
+<tr><td>S6</td><td>Cesky nazev okna a procesu neutralni (<code>title</code>, ne "LOWASS"); spusteni pres <code>run-silent.bat</code> je dobre, <code>pythonw.exe</code> je vsak v seznamu procesu.</td><td>Aplikace pro hlidani spustenych programu vidi nazev procesu a okna.</td><td>Cast (title je konfigurovatelny)</td></tr>
+<tr><td>S7</td><td>Zadne zvuky a zadny vystup do reproduktoru.</td><td>Zvuk by se vratil loopbackem a slyšeli by ho ostatni.</td><td>Splneno (zadne zvuky)</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout bad"><span class="label">Co to neskryje</span>
+<p>Pohled osoby v mistnosti nebo kamerou na monitor. Programy, ktere prohlizi seznam beziciho software (EDR, DLP, kontrolni agent zakaznika). Sledovani klavesnice a fokusu. Priznak neni bezpecnostni hranice, je to zobrazovaci funkce. Chovani konkretniho Teams/Zoom/Meet zavisi na verzi a rezimu sdileni (zdroje to sami nezaruci), proto <strong>pred prvnim ostrym pouzitim zkusit zkusebni hovor</strong> ve stejnem rezimu sdileni (cela obrazovka, okno, druhy monitor).</p></div>
+
+<div class="callout warn"><span class="label">Pravni a smluvni riziko</span>
+<p>Skryta transkripce druhe strany je nahravani hovoru. LMA kvuli tomu ma consent notice a evidenci souhlasu. Pro zakazniky (customer A, customer B, ...) je potreba znat smlouvu a interni pravidla: nektera zakaznicka prostredi zakazuji nahravani a sbirani dat tretimi stranami nebo kontrolují software. Zvaz volitelny "consent" rezim a rozhodni, kde se zapina. Tohle je rozhodnuti pro tebe, ne technicky detail.</p></div>
+
+<h2>3. "Fakt chytry": funkcni mezery</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Priorita</th><th>Funkce</th><th>Kdo ji ma</th><th>Navrh pro LOWASS</th></tr></thead>
+<tbody>
+<tr><td>Vysoka</td><td>Detekce otazky/ukolu na mne (jmeno, "Miroslave", "mohl bys...") a navrh odpovedi, ne jen fact-check</td><td>meeting-copilot, Cluely</td><td>Dalsi rezim v <code>lowass.toml [prompts]</code>: "co rict", 1-2 vety. Spousti ho wake phrase nebo jmeno v prepisu; zadna nova architektura.</td></tr>
+<tr><td>Vysoka</td><td>Prubezne shrnuti a sheet faktu behem meetingu (rozpocty, jmena, data, domluveno)</td><td>meeting-copilot (po 5 min)</td><td>Ted se souhrn dela az na konci. Prubezny rolling summary drzi kontext i v hodinovem meetingu a levneji nez cely transkript v kazdem volani.</td></tr>
+<tr><td>Vysoka</td><td>Cteni sdilenych slidu a obrazovky automaticky</td><td>LMA (klicove snimky + OCR), Glass, Cluely</td><td>Ted jen rucne tlacitkem Screen. Pridat auto-snimek pri zmene obrazu (diff) a v pripade, ze nekdo sdili. Po S1 bez bliknuti.</td></tr>
+<tr><td>Stredni</td><td>Rozliseni mluvcich u strany "Protistrana" (diarizace)</td><td>LMA (<code>spk_0</code>, <code>spk_1</code>), Transcribe to umi</td><td>Ted jsou jen dva kanaly. S vice lidmi se spatne pripisuje, kdo co ma udelat. Zapnout diarizaci v Transcribe streamu a dat cisla do prepisu.</td></tr>
+<tr><td>Stredni</td><td>Znalostni baze nad vlastnimi dokumenty</td><td>LMA (Bedrock KB), meeting-copilot (RAG)</td><td>Ma se vyuzit stavajici SQLite/Cohere store: indexovat slozku poznamek a Confluence stranky projektu, ne jen minule meetingy.</td></tr>
+<tr><td>Stredni</td><td>Akcni body bez vlastnika/terminu, sledovani agendy</td><td>LMA</td><td>Agenda z pozvanky/Confluence, na konci vyznacit pokryte a vynechane body. Zapis do Jira jen s potvrzenim (guard ted write blokuje).</td></tr>
+<tr><td>Stredni</td><td>Preklad prepisu behem meetingu</td><td>LMA, meeting-copilot</td><td>LOWASS prekládá jen odpovedi. Pri nemcine/slovenstine staci kratky preklad zadnych poslednich vet na vyzadani.</td></tr>
+<tr><td>Stredni</td><td>Odolnost proti vypadku</td><td>meeting-copilot (Ollama pretekem po 2,5 s)</td><td>SSO token Transcribe muze vyprset uprostred hovoru; Groq je zaloha, ale rucni. Automaticke prepnuti STT a LLM a viditelna chyba v okne.</td></tr>
+<tr><td>Nizka</td><td>Hlas nebo sluchatka (soukroma cesta)</td><td>LMA (hlasovy asistent)</td><td>Zvuk do jineho zarizeni nez loopback; jinak by ho slyseli ostatni. Neprioritni.</td></tr>
+<tr><td>Nizka</td><td>LOWASS jako MCP server; cena na meeting; retence</td><td>LMA</td><td>Az bude vice uzivatelu.</td></tr>
+</tbody>
+</table></div>
+
+<h2>4. Co LOWASS dela lip nebo jinak</h2>
+<ul>
+<li>Agent s cteni z Jira, Confluence, GitLab a webu pres mcphub, s read-only guardem. LMA ma MCP klienta, ale jde o AWS stack, ne o lokalni okno.</li>
+<li>Projekty (customer A, customer B, ...) s vlastnim promptem a mcphub adresou a oddelenou pamet.</li>
+<li>Verdikty s barvami (NEPRAVDA, POTVRZENO, INFO, NEOVERENO) a mlceni, kdyz neni co hlasit: je to presne opak nahlas se hlasiciho bota.</li>
+<li>Bez bota na schuzce a bez zaznamu na disk, co by slo videt; prepis se nikde neukazuje.</li>
+</ul>
+
+<h2>Doporuceny dalsi postup</h2>
+<ol>
+<li><strong>Stealth balik S1-S5</strong> (jedna drobna zmena v <code>ui.py</code> + maly modul pro Win32 priznaky; test na Windows ve zkusebnim Teams hovoru se sdilenim cele obrazovky i okna). Je to rychla vyhra.</li>
+<li><strong>Rezim "co rict"</strong> a prubezne shrnuti (zmena promptu a malé zmeny v <code>meeting.py</code>/<code>flow.py</code>).</li>
+<li><strong>Auto-snimek obrazovky pri zmene</strong> po S1.</li>
+<li>Diarizace v Transcribe a indexace vlastnich dokumentu.</li>
+<li>Rozhodnout s tebou: consent rezim a pravidla pro zakazniky, nez se zacne pouzivat na zakaznickych hovorech.</li>
+</ol>
+
+<div class="callout warn"><span class="label">Co neni overeno</span>
+<p>Zadne tvrzeni o chovani konkretni verze Teams/Zoom/Meet nebylo testovano, jde o dokumentaci vyrobcu overlayi a clanky. Nebylo testovano ani ve skutecnem LOWASS na Windows: soucasny stav (<code>-topmost</code>, <code>-alpha</code>) je z kodu <code>lowass/ui.py</code>. Cena a funkce komercnich nastroju jsou z jejich webu a prehledu k listopadu 2026, bez vlastniho pouziti.</p></div>
+
+<footer>Compiled by Miroslav Dvořák. Sources: lowass/ui.py, memory-bank/*, github.com/aws-samples/amazon-transcribe-live-meeting-assistant (README, v0.4.0), github.com/masrisystems/meeting-copilot, docs.cluely.com/feature/undetectability, github.com/Natively-AI-assistant/natively-cluely-ai-assistant, ophyai.com (Can Zoom, Teams or Meet see overlay apps), zapier.com/blog/best-ai-meeting-assistant, heynatively.com (best AI meeting assistant tools).</footer>
+</div>
+</body>
+</html>

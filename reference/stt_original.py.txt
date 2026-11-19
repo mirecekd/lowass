@@ -1,0 +1,250 @@
+import io
+import os
+import queue
+import threading
+import time
+import wave
+from collections import deque
+from datetime import datetime
+from math import gcd
+
+import numpy as np
+import pyaudiowpatch as pyaudio
+import requests
+from scipy.signal import resample_poly
+
+# --- KONFIGURACE ---
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "<moved-to-.env>")
+GROQ_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
+WHISPER_MODEL = "whisper-large-v3-turbo"
+
+MIC_THRESHOLD = 0.0025       # Nižší práh pro mikrofon (Jabra má slabší surový signál)
+LOOPBACK_THRESHOLD = 0.012   # Vyšší práh pro zvuk ze sluchátek (YouTube / Teams)
+SILENCE_DURATION = 0.65      # Kolik sekund ticha ukončí větu
+MAX_SEGMENT_SEC = 15.0       # Maximální délka jednoho bloku
+DEBUG_MIC_LEVEL = True       # Zobrazí živou hodnotu RMS mikrofonu pro snadné doladění
+
+DOMAIN_PROMPT = (
+    "Pracovní IT meeting v češtině. Termíny: AWS, Azure, Kubernetes, Docker, "
+    "Terraform, CI/CD, API, deploy, pipeline, databáze, microservice, latency."
+)
+
+HALLUCINATIONS = {
+    "titulky vytvořil johnyx.",
+    "děkuji za pozornost.",
+    "děkuji za shlédnutí.",
+    "konec.",
+    "...",
+}
+
+audio_queue: queue.Queue[tuple[str, bytes]] = queue.Queue()
+conversation_history: deque[str] = deque(maxlen=25)
+
+
+def find_wasapi_devices(p: pyaudio.PyAudio) -> tuple[dict, dict]:
+    """Najde výchozí mikrofon a WASAPI loopback výchozích sluchátek."""
+    wasapi_info = p.get_host_api_info_by_type(pyaudio.paWASAPI)
+    mic_info = p.get_device_info_by_index(wasapi_info["defaultInputDevice"])
+    speakers_info = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])
+
+    if not speakers_info["isLoopbackDevice"]:
+        for loopback in p.get_loopback_device_info_generator():
+            if speakers_info["name"] in loopback["name"]:
+                speakers_info = loopback
+                break
+
+    return mic_info, speakers_info
+
+
+def open_input_stream(p: pyaudio.PyAudio, device_info: dict) -> tuple[pyaudio.Stream, int, int, int]:
+    """Otevře jeden vstupní audio stream v hlavním vlákně."""
+    rate = int(device_info["defaultSampleRate"])
+    channels = max(1, int(device_info["maxInputChannels"]))
+    chunk_frames = int(rate * 0.05)  # 50 ms
+
+    stream = p.open(
+        format=pyaudio.paInt16,
+        channels=channels,
+        rate=rate,
+        frames_per_buffer=chunk_frames,
+        input=True,
+        input_device_index=device_info["index"],
+    )
+    return stream, rate, channels, chunk_frames
+
+
+def prepare_audio_chunk(raw_bytes: bytes, channels: int, orig_rate: int) -> tuple[np.ndarray, float]:
+    """Převede surová PCM data na mono 16 kHz a spočítá hlasitost (RMS)."""
+    audio = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+    if channels > 1:
+        # U stereo headsetů může být hlas jen v jednom kanálu; bereme silnější kanál
+        reshaped = audio.reshape(-1, channels)
+        ch_rms = np.sqrt(np.mean(reshaped ** 2, axis=0))
+        audio = reshaped[:, int(np.argmax(ch_rms))]
+    if orig_rate != 16000:
+        common = gcd(16000, orig_rate)
+        audio = resample_poly(audio, 16000 // common, orig_rate // common).astype(np.float32)
+    rms = float(np.sqrt(np.mean(audio ** 2)))
+    return audio, rms
+
+
+def normalize_audio(audio: np.ndarray, target_peak: float = 0.7) -> np.ndarray:
+    """Normalizuje hlasitost segmentu před odesláním do Whisperu."""
+    peak = float(np.max(np.abs(audio)))
+    if peak > 1e-5:
+        gain = min(target_peak / peak, 25.0)
+        audio = audio * gain
+    return np.clip(audio, -1.0, 1.0)
+
+
+def numpy_to_wav_bytes(audio_float32: np.ndarray, sample_rate: int = 16000) -> bytes:
+    """Zabalí float32 pole do in-memory WAV souboru bez zápisu na disk."""
+    normalized = normalize_audio(audio_float32)
+    pcm_int16 = np.clip(normalized * 32767.0, -32768, 32767).astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_int16.tobytes())
+    return buf.getvalue()
+
+
+def capture_worker(
+    speaker_label: str,
+    stream: pyaudio.Stream,
+    rate: int,
+    channels: int,
+    chunk_frames: int,
+    threshold: float,
+    stop_event: threading.Event,
+    debug_level: bool = False,
+):
+    """Čte z již otevřeného streamu, detekuje věty a posílá je do fronty."""
+    chunk_sec = chunk_frames / rate
+    buffer: list[np.ndarray] = []
+    silence_sec = 0.0
+    speech_sec = 0.0
+    is_speaking = False
+    tick = 0
+
+    while not stop_event.is_set():
+        raw = stream.read(chunk_frames, exception_on_overflow=False)
+        mono_16k, rms = prepare_audio_chunk(raw, channels, rate)
+
+        if debug_level:
+            tick += 1
+            if tick % 8 == 0:
+                state = "ŘEČ" if is_speaking else "ticho"
+                print(f"\r[MIC RMS: {rms:.5f} | práh: {threshold:.5f} | {state}]   ", end="", flush=True)
+
+        if rms > threshold:
+            is_speaking = True
+            silence_sec = 0.0
+            buffer.append(mono_16k)
+            speech_sec += chunk_sec
+        elif is_speaking:
+            silence_sec += chunk_sec
+            buffer.append(mono_16k)
+            speech_sec += chunk_sec
+
+            if silence_sec >= SILENCE_DURATION or speech_sec >= MAX_SEGMENT_SEC:
+                if speech_sec - silence_sec >= 0.35:
+                    wav_bytes = numpy_to_wav_bytes(np.concatenate(buffer))
+                    audio_queue.put((speaker_label, wav_bytes))
+                buffer.clear()
+                silence_sec = 0.0
+                speech_sec = 0.0
+                is_speaking = False
+
+
+def stt_worker(stop_event: threading.Event):
+    """Odesílá audio bloky na Groq API a vypisuje čistý přepis."""
+    session = requests.Session()
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+
+    while not stop_event.is_set() or not audio_queue.empty():
+        try:
+            speaker, wav_bytes = audio_queue.get(timeout=0.2)
+        except queue.Empty:
+            continue
+
+        files = {"file": ("speech.wav", wav_bytes, "audio/wav")}
+        data = {
+            "model": WHISPER_MODEL,
+            "language": "cs",
+            "prompt": DOMAIN_PROMPT,
+            "response_format": "json",
+        }
+
+        try:
+            resp = session.post(GROQ_URL, headers=headers, files=files, data=data, timeout=10)
+            if resp.status_code == 429:
+                print("\r[WARN] Dosažen rate-limit Groq API, čekám 2 s...          ", flush=True)
+                time.sleep(2)
+                continue
+            resp.raise_for_status()
+
+            text = resp.json().get("text", "").strip()
+            if text and text.lower() not in HALLUCINATIONS:
+                ts = datetime.now().strftime("%H:%M:%S")
+                line = f"[{ts}] {speaker}: {text}"
+                conversation_history.append(line)
+                print(f"\r{line:<75}", flush=True)
+
+        except requests.RequestException as e:
+            print(f"\r[ERR] Chyba STT API: {e:<60}", flush=True)
+
+
+def main():
+    if not GROQ_API_KEY or GROQ_API_KEY.startswith("gsk_SEM"):
+        raise ValueError("Nastavte proměnnou prostředí GROQ_API_KEY nebo vložte klíč do skriptu.")
+
+    p = pyaudio.PyAudio()
+    mic_stream = None
+    spk_stream = None
+    stop_event = threading.Event()
+
+    try:
+        mic_info, loopback_info = find_wasapi_devices(p)
+        print(f"[Já]          -> {mic_info['name']}")
+        print(f"[Protistrana] -> {loopback_info['name']}")
+
+        mic_stream, mic_rate, mic_ch, mic_chunk = open_input_stream(p, mic_info)
+        spk_stream, spk_rate, spk_ch, spk_chunk = open_input_stream(p, loopback_info)
+
+        print("Cloudový STT aktivní... (Ukončíte pomocí Ctrl+C)\n")
+
+        t_mic = threading.Thread(
+            target=capture_worker,
+            args=("[Já]", mic_stream, mic_rate, mic_ch, mic_chunk, MIC_THRESHOLD, stop_event, DEBUG_MIC_LEVEL),
+            daemon=True,
+        )
+        t_spk = threading.Thread(
+            target=capture_worker,
+            args=("[Protistrana]", spk_stream, spk_rate, spk_ch, spk_chunk, LOOPBACK_THRESHOLD, stop_event, False),
+            daemon=True,
+        )
+        t_stt = threading.Thread(target=stt_worker, args=(stop_event,), daemon=True)
+
+        t_mic.start()
+        t_spk.start()
+        t_stt.start()
+
+        while True:
+            time.sleep(0.5)
+
+    except KeyboardInterrupt:
+        print("\nUkončuji...")
+    finally:
+        stop_event.set()
+        time.sleep(0.2)
+        for s in (mic_stream, spk_stream):
+            if s is not None:
+                s.stop_stream()
+                s.close()
+        p.terminate()
+
+
+if __name__ == "__main__":
+    main()

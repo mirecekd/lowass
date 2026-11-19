@@ -1,0 +1,240 @@
+# lowass.toml.sample - the template of lowass.toml (the file you edit; it is NOT in git).
+# The first start copies this file to lowass.toml. All behaviour lives there; secrets and endpoints live in .env.
+
+[audio]
+mic_threshold = 0.0025        # RMS gate for the microphone (a headset often has a weak raw signal)
+loopback_threshold = 0.012    # RMS gate for the system audio (Teams / YouTube in your headphones)
+silence_duration = 0.65       # seconds of silence that end a sentence
+max_segment_sec = 15.0        # hard cap of one audio block
+min_speech_sec = 0.35
+my_label = "Ja"
+other_label = "Protistrana"
+
+[debug]
+# Switch off (enabled = false) once everything works. Also: python -m lowass --debug
+enabled = true
+show_transcript = true        # debug only: show what the speech recogniser heard as grey "~" lines in the window
+stats_interval_sec = 2        # live pipeline counters under the status line (mic level vs threshold, segments, STT, agent)
+log_file = "lowass.log"       # next to lowass.toml, rotating; DEBUG level when enabled, WARNING otherwise
+save_wav_dir = ""             # e.g. "debug-wav": save every segment sent to the recogniser, to listen back
+
+[models]
+# LiteLLM model ids of YOUR proxy (LITELLM_BASE_URL in .env); the window has a dropdown.
+default = "global.anthropic.claude-haiku-5-5"
+available = [
+  "global.anthropic.claude-haiku-5-5",
+  "global.anthropic.claude-sonnet-5-5",
+  "global.anthropic.claude-opus-5-5",
+  "global.openai.gpt-6-astra",
+  "global.openai.gpt-6.1-sol",
+  "global.openai.gpt-6-luna",
+  "global.openai.gpt-6.1-terra",
+  "global.xai.grok-4.7",
+  "global.moonshotai.kimi-k3.1",
+]
+
+[projects]
+# One entry per project or customer. The window has ONE dropdown for it (like the model). Switching reconnects to the
+# project's mcphub address, uses its prompt (appended to [prompts].system) and clears the LLM context.
+# Rename, add or remove entries freely; the key (general, customer_a ...) is also the name of the data folder.
+default = "general"
+
+# mcphub groups (/mcp/$smart/<group>) restrict the tools of a project. Until you create them in your mcphub, every
+# project may point to the same endpoint and differs only by its prompt.
+[projects.general]
+name = "General"
+mcphub_url = "https://mcphub.example.com/mcp/$smart"
+prompt = """Context: general work conversations (internal meetings, planning, customer-independent topics).
+No single customer is implied. If a customer or project is named in the conversation, say so and keep the facts of that customer separate.
+Do not invent internal facts, names, prices or contracts: if an internal detail cannot be found in the tools, report it as UNVERIFIED / NEOVERENO."""
+
+[projects.customer_a]
+name = "Customer A"
+mcphub_url = "https://mcphub.example.com/mcp/$smart"
+prompt = """Customer context: describe the customer, the product and the project here in a few lines.
+Use the customer's terms and abbreviations exactly as written and NEVER invent expansions of abbreviations.
+Likely sources: name the tools that hold the customer's tickets and documents (for example the wiki and the ticket system of the mcphub).
+If a narrow search returns nothing, retry with broader terms."""
+
+[projects.customer_b]
+name = "Customer B"
+mcphub_url = "https://mcphub.example.com/mcp/$smart"
+prompt = """Customer context: describe the customer, the topics and the key documents here.
+The conversation is mostly Czech. Verify technical facts against the official documentation before you report them."""
+
+[stt]
+# Speech-to-text provider. "transcribe" = Amazon Transcribe streaming (primary), "groq" = Groq Whisper (kept as fallback).
+provider = "transcribe"
+
+[transcribe]
+# AWS access is ALWAYS by a named profile from ~/.aws/config (never role ARNs or keys here).
+# Sign-in is done by the app itself with a device code (browser page, no AWS CLI needed); type /login in the chat box to repeat it.
+# The profile must allow transcribe:StartStreamTranscription and translate:TranslateText.
+profile = "your-aws-profile"
+region = "eu-central-1"
+# "live" = audio is streamed WHILE you speak and the words appear at once (grey = still changing, white = final).
+# "segment" = the older mode: a sentence is sent after it ended.
+mode = "live"
+# Czech, Slovak, German, English by default. One dialect per language (no en-US together with en-GB).
+# With more than one language Transcribe identifies the language itself. Any code from the AWS "supported languages"
+# page with streaming works, e.g. "pl-PL", "hu-HU", "fr-FR".
+# A language that is NOT listed is not recognised (the closest listed one is guessed and the text is nonsense), so add
+# every language that really occurs, e.g. "es-ES". Keep the list short: with six languages the detection gets worse.
+languages = ["cs-CZ", "sk-SK", "de-DE", "en-US"]
+timeout_sec = 30
+
+[translate]
+# Foreign speech is translated by Amazon Translate (about 0.1 s after the sentence is final) and shown under it, but ONLY
+# while the Translate button in the toolbar is on (blue). Off = foreign speech is just transcribed and Translate is never called.
+enabled = true                      # false = the button does nothing and no Translate client is ever created
+on_start = false                    # the state of the Translate button when LOWASS starts
+target = "cs"
+understood = ["cs", "sk", "en"]    # languages you understand: no translation for them. Add "de" if you do not need German translated.
+
+[wake]
+# A sentence of YOURS (the microphone) that starts with one of these phrases goes to the assistant as a question,
+# like typing it into the chat box. A bare phrase waits for the next sentence (armed_sec seconds).
+phrases = ["Tose Samo", "Samo Seto", "Samo Tose"]
+armed_sec = 10
+
+[groq]
+# Used only when stt.provider = "groq" (needs GROQ_API_KEY in .env)
+url = "https://api.groq.com/openai/v1/audio/transcriptions"
+model = "whisper-large-v3-turbo"
+language = ""                 # empty = Whisper auto-detects (Czech/English/other); "cs" or "en" forces one
+prompt = "Work IT meeting, Czech or English. Terms: AWS, Azure, Kubernetes, Docker, Terraform, CI/CD, API, deploy, pipeline, database, microservice, latency, Jira, Confluence."
+hallucinations = ["titulky vytvoril johnyx.", "dekuji za pozornost.", "dekuji za shlednuti.", "konec.", "..."]
+
+[agent]
+auto = true                   # automatic fact-check on pauses in the conversation
+quiet_sec = 4.0               # pause in speech before an automatic run
+min_new_words = 14            # do not run on less new text than this
+window_minutes = 6            # how much transcript the model sees
+history_messages = 12         # chat memory (user/assistant messages)
+max_steps = 8                 # tool-call rounds per request; kept low on purpose (speed matters more than depth)
+max_tool_chars = 12000        # tool result truncation
+llm_timeout_sec = 120
+mcp_timeout_sec = 180
+
+[guard]
+# tool names (inside mcphub call_tool) matching this regex are blocked: read-only mode
+write_deny_regex = '(?i)(?:^|[_\-])(create|update|delete|remove|add|edit|write|transition|assign|merge|push|fork|upload|send|post|comment|archive|revoke|approve|reject|submit|dismiss|trigger|deploy|execute|reply|publish|cancel|close|reopen|batch)(?:[_\-]|$)'
+
+[ui]
+title = "LOWASS"
+width = 460
+height = 760                  # the debug panel has 4-5 rows; 660 leaves room for the log and the chat box
+x = -20                       # negative = from the right edge
+y = 60
+alpha = 0.94
+font = "Segoe UI"
+font_size = 10
+# Answer lines that start with one of these verdict tags are coloured (red = the fact-check failed,
+# blue = looked up and sure / confirmed). Other tags (UNVERIFIED, NEOVERENO) keep the normal colour.
+verdict_red = ["FALSE", "NEPRAVDA"]
+verdict_blue = ["CONFIRMED", "POTVRZENO", "INFO"]
+caption_lines = 4             # lines of the live captions (partial = grey, final = white, translation = blue)
+
+# Buttons above the chat box. Each runs its prompt over the WHOLE meeting so far (not only the last minutes).
+# `action = "check"` is the fact-check of the recent conversation (the same as Ctrl+Alt+Space).
+# Add, remove or reword buttons freely; keep the labels short, the buttons are narrow.
+[[ui.shortcuts]]
+label = "Fact-check"
+action = "check"
+
+[[ui.shortcuts]]
+label = "Summary"
+prompt = "Summarise the meeting so far: topics, decisions and open questions. Short bullets, in the language of the conversation."
+
+[[ui.shortcuts]]
+label = "Actions"
+prompt = "List the action items of the meeting so far: who does what and by when. Only what was really said; if the owner or the date is missing, say so. Short bullets."
+
+[[ui.shortcuts]]
+label = "Decisions"
+prompt = "List every decision made in the meeting so far, one short bullet each. If nothing was decided, say so."
+
+[[ui.shortcuts]]
+label = "Now"
+prompt = "What is being discussed right now, and what was the last thing asked or promised? Two short bullets."
+
+[hotkeys]
+check_now = "ctrl+alt+space"  # fact-check the recent conversation right now
+show = "ctrl+alt+l"           # raise the window and focus the chat box
+screen = "ctrl+alt+s"         # screenshot of the primary monitor, sent to the agent
+private = "ctrl+alt+p"        # Private on/off
+
+[memory]
+# Every meeting (= everything between start, Clear, a project switch and exit) is stored locally:
+#   <data_dir>/<project>/<session>/transcript.md, chat.md, summary.md, facts.md, screens/*.png
+# and embedded into a local SQLite vector store (<data_dir>/memory.db).
+data_dir = "data"             # relative to the project folder; absolute path allowed
+summary_on_end = true         # summary when a meeting ends (Clear / project switch / exit) and shown in the window
+chunk_words = 180             # transcript is embedded in chunks of about this many words ...
+chunk_seconds = 90            # ... or after this many seconds, whichever comes first
+screen_max_side = 1568        # screenshot is downscaled to this longest side before it is saved and sent (0 = original)
+
+[embeddings]
+# Cohere Embed v4 through your LiteLLM proxy (same endpoint and key as the LLM: LITELLM_BASE_URL / LITELLM_API_KEY in .env)
+enabled = true
+model = "global.cohere.embed-v4:0"
+dimensions = 1536             # 256, 512, 1024 and 1536 were verified; changing it later needs a new memory.db
+timeout_sec = 60
+
+[hint]
+# The assistant offers a suggested answer when the other side asked YOU something (a question, your name, "could you ...")
+# and nobody answered for `wait_sec`. The card appears next to the main window, never takes the keyboard focus and goes
+# away by itself (`card_sec`) or as soon as you answer. The assistant may also decide NOT to show anything.
+enabled = true
+names = ["YourName"]                  # how the others call you (whole words, without diacritics; Czech case endings are matched)
+wait_sec = 12                         # silence on your side before a question counts as unanswered
+cooldown_sec = 45                     # at least this long between two hints
+max_age_sec = 90                      # an older question is dropped
+card_sec = 25                         # how long the card stays
+copy_hotkey = "ctrl+alt+c"            # copies the text of the visible card to the clipboard
+
+[facts]
+# Running summary and facts sheet (budgets, names, dates, what was agreed). Updated in small steps from the NEW part of the
+# transcript only, so it costs the same at minute 5 and at minute 60. It is saved to facts.md in the meeting folder.
+enabled = true
+min_new_words = 60                    # update when this many new words arrived
+max_chars = 3500
+model = ""                            # empty = the model selected in the window; a cheaper one can be set here
+
+[prompts]
+system = """You are LOWASS, a silent assistant that listens to the user's work conversation (a live transcript) and helps in the background.
+Speakers: "Ja" is the user (microphone), "Protistrana" is the other side (system audio).
+You have mcphub tools: search_tools (discover tools) then call_tool (run one). Use them for Jira, Confluence, GitLab, GitHub, web search, AWS docs and so on. You are READ-ONLY; never try to change anything.
+
+LANGUAGE RULE (always apply): work and answer in the language of the conversation.
+- Conversation in English: answer in English. Verdict tags: CONFIRMED / FALSE / UNVERIFIED / INFO.
+- Conversation in Czech: answer in Czech. Verdict tags: POTVRZENO / NEPRAVDA / NEOVERENO / INFO.
+- Conversation in any other language: translate the relevant part into English and answer in English (start with "Translation:" and the translated gist). Use the English tags.
+- When the user types a question in the chat box, answer in the language of that question (other languages: English).
+Be very short: bullet points, no filler. Give facts with the source (ticket key, page title, URL). Say clearly when you could not verify something.
+Every finding is ONE bullet that STARTS with its verdict tag. Tag meaning: FALSE / NEPRAVDA = a claim in the conversation is wrong. CONFIRMED / POTVRZENO = a claim is right. INFO = you looked up something nobody on the call could recall and you are SURE of it. UNVERIFIED / NEOVERENO = you could not verify it. Never use INFO for guesses.
+"""
+auto = """New part of the conversation is below. Decide whether something deserves help right now: a factual claim that is doubtful or checkable, a name, ticket, page, number or term the user may want looked up, or a question the other side asked that you can answer from Jira/Confluence/web.
+If you check something, do it with the tools first. Report only findings that matter (max 5 short bullets, each with a verdict tag in the conversation language).
+If nothing needs attention reply with exactly: NOTHING"""
+check = """The user pressed the fact-check hotkey. Go through the recent conversation, pick the claims, names, numbers and open questions worth verifying, verify them with the tools and report with verdict tags. If really nothing is checkable, say so in one line."""
+hint = """The other side asked the USER something (or addressed him) and nobody has answered for a while. The question is given below together with the recent conversation and the facts sheet.
+Decide whether a suggested answer would really help the user right now. Reply with exactly: NOTHING when the question was rhetorical, was already answered, is small talk or needs no help.
+Otherwise reply with the suggestion ONLY, in the language of the conversation: one or two short sentences the user can say as they are, in the first person. Use the facts sheet and the conversation; if the answer needs a fact you can look up (a ticket, a page, a date), look it up with the tools first, but never invent a number, a name or a date. If you do not know enough to suggest an answer, reply with a short suggestion of what to ask back (for example to repeat the question or to clarify a term)."""
+facts = """You keep the FACTS SHEET of a running meeting. You get the previous sheet and the NEW part of the transcript. Return the complete updated sheet and nothing else.
+Keep it short (at most 25 lines), in the language of the conversation, as plain lines grouped under these headings, skipping a heading that has nothing:
+NUMBERS - budgets, prices, amounts, percentages, versions (with what they refer to).
+DATES - deadlines, dates and times (with what they refer to).
+PEOPLE - who is who, who owns what, who promised what.
+AGREED - decisions and commitments, one line each.
+OPEN - open questions and unresolved points.
+Rules: only what was really said, never guess or add facts; keep the speaker's own wording for numbers, names and dates; when a new statement corrects an older one, replace the older line; drop what is obviously irrelevant small talk. If nothing in the new part is worth adding, return the previous sheet unchanged."""
+screen = """The user took a screenshot of the Teams window (the primary monitor) during the meeting. Read what is on it: meeting title, shared slides, document or code, chat messages, names, ticket keys, numbers, dates. Tell the user in a few short bullets what matters for the conversation. If the screenshot contains a claim, ticket key, date or number that can be checked, check it with the tools and use the verdict tags. If something is unreadable, say so instead of guessing."""
+summary = """The meeting has ended. Write a summary of the MEETING below in the language of the conversation (Czech meeting: Czech; English: English; mixed: the dominant language).
+Use exactly these sections, each a short bullet list, skip a section that has nothing:
+1. Topics - what was discussed.
+2. Decisions - what was agreed.
+3. Action items - who does what and by when (only what was actually said; never invent owners or dates).
+4. Open questions - what stayed unresolved.
+5. Findings of the assistant - checks that were made during the meeting and their result (keep the verdict tags FALSE / NEPRAVDA / CONFIRMED / POTVRZENO / INFO).
+Be short. Do not call tools unless something in the text must be verified; no new research."""
