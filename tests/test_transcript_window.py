@@ -72,3 +72,16 @@ def test_the_same_sentence_said_twice_gets_one_translation_each():
     t.translate("Pro", "To znamena", "Das heisst")
     t.translate("Pro", "To znamena 2", "Das heisst")
     assert [e.translation for e in t.entries] == ["To znamena 2", "To znamena"]
+
+
+def test_closing_the_transcript_window_with_the_x_turns_translation_off(monkeypatch):
+    """Field bug: the X hid the window but the Translate button stayed blue and translation kept running."""
+    from lowass import transcript_window
+
+    calls = []
+    window = object.__new__(transcript_window.TranscriptWindow)
+    window._window, window._on_closed = None, lambda: calls.append("off")
+    window._user_close()
+    assert calls == ["off"]
+    window.close()  # the button path (translate switched off) must NOT call back, or the toggle would loop
+    assert calls == ["off"]

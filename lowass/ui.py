@@ -85,7 +85,7 @@ class FloatingWindow:
         self.card = HintCard(r, self._geometry, on_copy or self._copy, ttl_sec=hint_ttl,
                              on_inline=lambda t: self._append("auto", t))
         self._on_translate = on_translate
-        self.transcript = TranscriptWindow(r, self._geometry, font)
+        self.transcript = TranscriptWindow(r, self._geometry, font, self._transcript_closed)
         self.facts = FactsWindow(r, self._geometry, font, self.transcript.is_open, self.facts_btn.set)
         if translate_on:
             self.show_transcript(True)
@@ -96,6 +96,11 @@ class FloatingWindow:
             self.facts.open()
         else:
             self.facts.close()
+
+    def _transcript_closed(self) -> None:
+        """The user closed the transcript window with the X: the button goes off and translation stops."""
+        self.translate.set(False)
+        self._on_translate(False)
 
     def _translate_toggled(self, on: bool) -> None:
         self.show_transcript(on)

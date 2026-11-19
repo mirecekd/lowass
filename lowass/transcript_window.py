@@ -25,8 +25,10 @@ WIDTH, HEIGHT, CARD_WIDTH = 420, 520, 340
 class TranscriptWindow:
     """Never takes the keyboard focus (same trick as the hint card); can be dragged and closed with the Translate button."""
 
-    def __init__(self, root: tk.Tk, main_geometry: Callable[[], Rect], font: tuple[str, int]):
+    def __init__(self, root: tk.Tk, main_geometry: Callable[[], Rect], font: tuple[str, int],
+                 on_closed: Callable[[], None] = lambda: None):
         self._root, self._main_geometry, self._font = root, main_geometry, font
+        self._on_closed = on_closed  # the user closed the window with the X: the Translate button must go off too
         self._lines = TranscriptLines()
         self._window: tk.Toplevel | None = None
         self._text: scrolledtext.ScrolledText | None = None
@@ -46,6 +48,11 @@ class TranscriptWindow:
     def close(self) -> None:
         if self._window is not None:
             self._window.withdraw()
+
+    def _user_close(self) -> None:
+        """The X of the window: hide it AND tell the owner (the Translate button turns off and translation stops)."""
+        self.close()
+        self._on_closed()
 
     def caption(self, text: str) -> None:
         speaker, state, line = parse_caption(text)
@@ -70,7 +77,7 @@ class TranscriptWindow:
         window.title("LOWASS - transcript")
         window.attributes("-topmost", True)
         window.configure(bg=BACKGROUND)
-        window.protocol("WM_DELETE_WINDOW", self.close)  # the X only hides it; the Translate button opens it again
+        window.protocol("WM_DELETE_WINDOW", self._user_close)  # the X = the Translate button off; the button opens it again
         text = scrolledtext.ScrolledText(window, wrap="word", state="disabled", bg="#252526", fg=FINAL_COLOR,
                                          font=self._font, relief="flat", borderwidth=0, highlightthickness=0)
         text.pack(fill="both", expand=True, padx=4, pady=4)
