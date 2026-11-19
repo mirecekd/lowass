@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 from tkinter import font as tkfont
+from tkinter import ttk
 from typing import Any
 
 from .debug import parse_rows
@@ -157,3 +158,13 @@ def translate_button(parent: tk.Misc, font: tuple[str, int], on_translate: Calla
                      on: bool = False) -> ToggleButton:
     """Blue while on: foreign speech is translated, otherwise it is only transcribed."""
     return ToggleButton(parent, "Translate", font, TRANSLATION_COLOR, on_translate, on)
+
+
+def project_box(parent: tk.Misc, var: tk.StringVar, keys: dict[str, str], font: tuple[str, int],
+                on_pick: Callable[[str], None]) -> None:
+    """The project dropdown: names are shown, `on_pick` gets the chosen NAME. Nothing is built without projects."""
+    if not keys:
+        return
+    box = ttk.Combobox(parent, textvariable=var, values=list(keys.values()), state="readonly", font=font)
+    box.pack(fill="x", padx=6, pady=(4, 0))
+    box.bind("<<ComboboxSelected>>", lambda _e: on_pick(var.get()))

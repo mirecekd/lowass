@@ -127,7 +127,7 @@ run.bat
 | Summary, actions, decisions of the meeting so far | the buttons above the chat box (editable in `lowass.toml`)                                                                |
 | Ask the assistant by voice                        | say `Tose Samo` / `Samo Seto` / `Samo Tose` + the question                                                                |
 | Stop everything for a private moment              | `Private` button or `Ctrl+Alt+P` (red = nothing is recorded)                                                              |
-| Foreign speech (German) in Czech                  | `Translate` button in the toolbar (blue = on): the translation appears in blue under the sentence; off = only transcribed |
+| Foreign speech (German) in Czech                  | `Translate` button in the toolbar (blue = on): a transcript window opens left of the hint card with the translation under each foreign sentence; off = only transcribed |
 | Screenshot of the Teams window (primary monitor)  | `Screen` or `Ctrl+Alt+S`                                                                                                  |
 | Raise the window and type                         | `Ctrl+Alt+L`                                                                                                              |
 | Suggested answer to a question put to you         | a card appears left of the window after about 12 s of your silence; click it or `Ctrl+Alt+C` copies it                    |

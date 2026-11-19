@@ -1,0 +1,97 @@
+# lowass/transcript_window.py
+"""A second small window with the running transcript and the translations; opened by the Translate button."""
+from __future__ import annotations
+
+import sys
+import tkinter as tk
+from collections.abc import Callable
+from tkinter import scrolledtext
+
+from .popup import _disable_activation
+from .popup_logic import Rect
+from .transcript_logic import TranscriptLines, place_transcript
+from .ui_parts import (
+    BACKGROUND,
+    FINAL_COLOR,
+    PARTIAL_COLOR,
+    TRANSLATION_COLOR,
+    parse_caption,
+    parse_translation,
+)
+
+WIDTH, HEIGHT, CARD_WIDTH = 420, 520, 340
+
+
+class TranscriptWindow:
+    """Never takes the keyboard focus (same trick as the hint card); can be dragged and closed with the Translate button."""
+
+    def __init__(self, root: tk.Tk, main_geometry: Callable[[], Rect], font: tuple[str, int]):
+        self._root, self._main_geometry, self._font = root, main_geometry, font
+        self._lines = TranscriptLines()
+        self._window: tk.Toplevel | None = None
+        self._text: scrolledtext.ScrolledText | None = None
+
+    def is_open(self) -> bool:
+        return self._window is not None and self._window.state() != "withdrawn"
+
+    def open(self) -> None:
+        window = self._ensure()
+        main = self._main_geometry()
+        x, y = place_transcript(main, CARD_WIDTH, WIDTH, HEIGHT, self._root.winfo_screenwidth(), self._root.winfo_screenheight())
+        window.geometry(f"{WIDTH}x{HEIGHT}+{x}+{y}")
+        window.deiconify()
+        window.lift()
+        self._render()
+
+    def close(self) -> None:
+        if self._window is not None:
+            self._window.withdraw()
+
+    def caption(self, text: str) -> None:
+        speaker, state, line = parse_caption(text)
+        if speaker:
+            self._lines.update(speaker, state, line)
+            self._render()
+
+    def translation(self, text: str) -> None:
+        speaker, line = parse_translation(text)
+        if speaker:
+            self._lines.translate(speaker, line)
+            self._render()
+
+    def clear(self) -> None:
+        self._lines.clear()
+        self._render()
+
+    def _ensure(self) -> tk.Toplevel:
+        if self._window is not None:
+            return self._window
+        window = tk.Toplevel(self._root)
+        window.title("LOWASS - transcript")
+        window.attributes("-topmost", True)
+        window.configure(bg=BACKGROUND)
+        window.protocol("WM_DELETE_WINDOW", self.close)  # the X only hides it; the Translate button opens it again
+        text = scrolledtext.ScrolledText(window, wrap="word", state="disabled", bg="#252526", fg=FINAL_COLOR,
+                                         font=self._font, relief="flat", borderwidth=0, highlightthickness=0)
+        text.pack(fill="both", expand=True, padx=4, pady=4)
+        for tag, color in (("partial", PARTIAL_COLOR), ("final", FINAL_COLOR), ("translation", TRANSLATION_COLOR)):
+            text.tag_configure(tag, foreground=color)
+        self._window, self._text = window, text
+        if sys.platform == "win32":
+            _disable_activation(window)
+        return window
+
+    def _render(self) -> None:
+        if self._text is None or not self.is_open():
+            return
+        text = self._text
+        at_end = text.yview()[1] >= 0.999  # keep the scroll position when the user scrolled up to read
+        text.configure(state="normal")
+        text.delete("1.0", "end")
+        for entry in self._lines.entries:
+            text.insert("end", f"{entry.speaker}: {entry.text}\n", "final" if entry.final else "partial")
+            if entry.translation:
+                text.insert("end", f"-> {entry.translation}\n", "translation")
+        text.configure(state="disabled")
+        if at_end:
+            text.see("end")

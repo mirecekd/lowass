@@ -10,6 +10,7 @@ from tkinter import scrolledtext, ttk
 from . import __version__
 from .popup import HintCard
 from .popup_logic import Rect
+from .transcript_window import TranscriptWindow
 from .ui_parts import BACKGROUND
 from .ui_poll import make_handlers
 from .ui_widgets import (
@@ -19,6 +20,7 @@ from .ui_widgets import (
     StatsPanel,
     append_log,
     private_button,
+    project_box,
     translate_button,
 )
 from .verdict import compile_verdicts
@@ -59,7 +61,7 @@ class FloatingWindow:
         tk.Button(bar, text="Clear", command=self._clear_all, font=font).pack(side="left")
         tk.Button(bar, text="Screen", command=self._screen, font=font).pack(side="left", padx=4)
         self.private = private_button(bar, font, on_private)
-        self.translate = translate_button(bar, font, on_translate, translate_on)
+        self.translate = translate_button(bar, font, self._translate_toggled, translate_on)
         self.auto_var = tk.BooleanVar(value=auto)
         tk.Checkbutton(bar, text="auto", variable=self.auto_var, command=self._toggle, bg=BACKGROUND, fg="#d4d4d4",
                        selectcolor=BACKGROUND, activebackground=BACKGROUND, font=font).pack(side="left")
@@ -71,11 +73,7 @@ class FloatingWindow:
         # project: one dropdown (names shown, keys reported)
         self._project_keys = dict(projects or {})
         self.project_var = tk.StringVar(value=self._project_keys.get(project, project))
-        if self._project_keys:
-            names = list(self._project_keys.values())
-            pbox = ttk.Combobox(r, textvariable=self.project_var, values=names, state="readonly", font=font)
-            pbox.pack(fill="x", padx=6, pady=(4, 0))
-            pbox.bind("<<ComboboxSelected>>", lambda _e: on_project(self._key_of(self.project_var.get())))
+        project_box(r, self.project_var, self._project_keys, font, lambda name: on_project(self._key_of(name)))
 
         self.status = tk.Label(r, text="starting...", anchor="w", bg=BACKGROUND, fg="#8a8a8a", font=font)
         self.status.pack(fill="x", padx=6, pady=(4, 0))
@@ -94,11 +92,27 @@ class FloatingWindow:
         self.entry = tk.Entry(r, bg="#3c3c3c", fg="#ffffff", insertbackground="#ffffff", font=font, relief="flat")
         self.entry.pack(fill="x", padx=6, pady=(0, 6), ipady=4)
         self.entry.bind("<Return>", self._submit)
-        self.card = HintCard(r, self._geometry, on_copy or self._copy, on_inline=lambda t: self._append("auto", t), ttl_sec=hint_ttl)
+        self.card = HintCard(r, self._geometry, on_copy or self._copy, ttl_sec=hint_ttl,
+                             on_inline=lambda t: self._append("auto", t))
+        self._on_translate = on_translate
+        self.transcript = TranscriptWindow(r, self._geometry, font)
+        if translate_on:
+            self.show_transcript(True)
         r.after(100, self._poll)
 
+    def _translate_toggled(self, on: bool) -> None:
+        self.show_transcript(on)
+        self._on_translate(on)
+
+    def show_transcript(self, on: bool) -> None:
+        """Translate on = the transcript window opens left of the hint card; off = it closes."""
+        if on:
+            self.transcript.open()
+        else:
+            self.transcript.close()
+
     def _geometry(self) -> Rect:
-        """Where the main window is on the screen: the hint card is placed next to it."""
+        """Where the main window is: the hint card and the transcript window are placed next to it."""
         r = self.root
         r.update_idletasks()
         return Rect(r.winfo_x(), r.winfo_y(), r.winfo_width(), r.winfo_height())
@@ -113,12 +127,12 @@ class FloatingWindow:
         self.on_submit, self.on_check, self.on_screen = on_submit, on_check, on_screen
 
     def post(self, kind: str, text: str) -> None:
-        """kind: you bot auto err status stats heard project raise screen unhide private caption caption_*"""
+        """kind: you bot auto err status stats heard project raise screen unhide private caption* hint*"""
         self.q.put((kind, text))
 
     def _screen(self) -> None:
-        """Screen button / hotkey: hide the window so it is not in the picture, then let the app grab the screen.
-        The app posts 'unhide' when the grab is done (also on failure)."""
+        """The Screen button / hotkey: hide the window so it is not in the picture, then the app grabs the screen
+        and posts 'unhide' (also on failure)."""
         self.root.withdraw()
         self.root.after(300, self.on_screen)
 

@@ -1,18 +1,22 @@
-# LOWASS - LOcal Windows ASSistant
+<img src="https://capsule-render.vercel.app/api?type=waving&height=200&color=0:202323,55:303635,100:e7ac80&text=LOWASS&fontColor=f1d6b4&fontSize=58&fontAlignY=38&desc=LOcal%20Windows%20ASSistant%20%C2%B7%20live%20call%20helper&descSize=20&descColor=f1d6b4&descAlignY=60" width="100%" alt="" />
 
 <div align="center">
 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/mirecekd) [!["PayPal.me"](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=LJ5ZF7Q9KMTRW&no_recurring=0&currency_code=USD)
+[![Python](https://img.shields.io/badge/Python-3.13-e7ac80?style=for-the-badge&logo=python&logoColor=e7ac80&labelColor=303635)](https://www.python.org/)
+[![Amazon Transcribe](https://img.shields.io/badge/Amazon-Transcribe-e7ac80?style=for-the-badge&logo=amazon-aws&logoColor=e7ac80&labelColor=303635)](https://aws.amazon.com/transcribe/)
+[![Strands Agents](https://img.shields.io/badge/Strands-Agents-e7ac80?style=for-the-badge&labelColor=303635)](https://strandsagents.com/)
+[![License MIT](https://img.shields.io/badge/License-MIT-e7ac80?style=for-the-badge&labelColor=303635)](LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/mirecekd/lowass/tests.yml?branch=main&style=for-the-badge&label=TESTS&color=e7ac80&labelColor=303635)](https://github.com/mirecekd/lowass/actions)
+
+[![Buy Me a Beer](https://img.shields.io/badge/If%20you%20like%20my%20work%20you%20can-Buy%20Me%20a%20Beer-e7ac80?style=for-the-badge&labelColor=303635)](https://buymeacoffee.com/mirecekd)
 
 </div>
 
+## 🚀 What is LOWASS?
+
 A floating always-on-top window for Windows that listens to your work conversation (microphone + system audio), transcribes it live and quietly works for you in the background: it fact-checks claims, looks things up through your mcphub, offers a suggested answer when someone asks you something, and keeps a running facts sheet of the meeting. It has a chat box and a small live-caption panel, but no transcript view.
 
-## What is LOWASS?
-
-LOWASS is a desktop helper for people who sit in many calls. It never speaks and never writes into the meeting. It listens, and shows you a short note only when it has something worth your attention. Everything it stores stays on your machine.
-
-## How it works?
+## 🧠 How it works?
 
 ### 1. Listen
 - Your microphone is "Ja", the system audio of the call (loopback) is "Protistrana".
@@ -24,17 +28,17 @@ LOWASS is a desktop helper for people who sit in many calls. It never speaks and
 ### 3. Tell you quietly
 - Findings appear in the window with verdict colours. A small card suggests what to answer when a question was put to you and you stay silent. Nothing steals the keyboard focus.
 
-## Features
+## ✨ Features
 
 - Live captions, wake phrase, Private mode, Screen button, shortcut buttons (summary, actions, decisions, now).
 - Suggested-answer card, rolling facts sheet, meeting memory with a summary at the end and search over past meetings.
 - Czech, Slovak, German and English speech by default, more by configuration.
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 Python 3.13, tkinter, Strands Agents (via a LiteLLM proxy), Amazon Transcribe and Translate, SQLite with Cohere Embed v4 vectors, mcphub. Windows at runtime, tests run on Linux.
 
-## Setup (Windows)
+## ⚙️ Setup (Windows)
 
 Short version below; the step-by-step guide with checks and troubleshooting is in `QUICKSTART.md`.
 
@@ -45,10 +49,11 @@ Short version below; the step-by-step guide with checks and troubleshooting is i
 
 `run-silent.bat` starts it without a console window. `python -m lowass --no-audio` starts only the window and chat.
 
-## Use
+## 🧭 Use
 
 - Auto mode: after a pause in the conversation the assistant reviews what was said and posts findings only when it has something (CONFIRMED / FALSE / UNVERIFIED / INFO, in Czech POTVRZENO / NEPRAVDA / NEOVERENO / INFO).
 - `Ctrl+Alt+Space` or the Fact-check button: review the recent conversation now.
+- Transcript window: the `Translate` button also opens a second small window to the LEFT of the hint card (it never takes the keyboard focus, you can drag it; the X only hides it, `Translate` opens it again). It shows the whole running transcript of both sides, scrolls, and puts the translation of a foreign sentence under it in blue (`-> ...`). The translation is also written into the main log, so it stays readable at normal speaking speed.
 - Live captions: a small panel under the status line shows what is being said while it is said (grey = still changing, white = final). The microphone and the loopback are shown separately. Foreign speech is only transcribed, unless the `Translate` button in the toolbar is on (blue): then every foreign sentence (German by default; the languages you understand are in `[translate].understood`) is translated into Czech about 0.1 s after it is final and shown under the sentence in blue. Off = Amazon Translate is never called. `[translate].on_start` sets the state at start (default off).
 - Buttons under the log (`[[ui.shortcuts]]` in `lowass.toml`): `Fact-check` (same as `Ctrl+Alt+Space`), `Summary`, `Actions`, `Decisions`, `Now`. Each custom button runs its own prompt over the WHOLE meeting so far. Add, rename or remove buttons in the config.
 - Wake phrase: say `Tose Samo`, `Samo Seto` or `Samo Tose` at the start of a sentence (microphone only) and the rest of the sentence goes to the assistant as a question, like typing it. A bare phrase waits for your next sentence. The phrases are in `[wake]`.
@@ -66,24 +71,24 @@ Short version below; the step-by-step guide with checks and troubleshooting is i
 - Languages (speech): Czech, Slovak, German and English by default, more in `lowass.toml [transcribe].languages`. A language that is NOT in this list is not recognised: Transcribe then picks the closest listed one and writes nonsense (verified with Spanish: "Buenos diasodos la la visamos", labelled English, and no translation). Add its code (for example `"es-ES"`) and it is recognised and, with the Translate button on, translated into Czech. Nothing else has to be switched on. One dialect per language. Do not add many: in a test with six languages a short Spanish sentence was labelled Czech again, with five it was right, so list only the languages that really occur.
 - Type a question in the box: it sees the recent conversation as context.
 
-## Configuration
+## 🔧 Configuration
 
 - `.env`: secrets (LiteLLM, mcphub token, optional Groq key). AWS access is a profile name in `lowass.toml`, never keys or role ARNs.
 - `lowass.toml`: thresholds, timings, hotkeys, window, prompts, read-only guard, `[memory]` (data folder, chunking, summary on/off), `[embeddings]` (model, dimensions). It is YOUR local file and is not in git: the first start creates it by copying `lowass.toml.sample`, which is the template that is in git. Edit `lowass.toml` (projects, mcphub addresses, AWS profile, your names for the hint card); when a new version brings a new section, compare with the sample.
 
 The assistant is read-only: tools whose names look like writes are blocked.
 
-## Debug
+## 🐞 Debug
 
 Debug is on by default while testing (`lowass.toml [debug]`): a stats line in the window (mic level vs. threshold, segments, Whisper results, agent calls), grey `~` lines with what Whisper heard, warnings for a dead microphone, and `lowass.log` next to the config (all audio devices, per-segment STT timing, thread crashes). `python -m lowass --debug` forces it on. Set `save_wav_dir = "debug-wav"` to save the audio sent to Whisper. Turn it off with `enabled = false` when everything works.
 
-## Development
+## 🧪 Development
 
 `pip install -r requirements-dev.txt`, then `pytest`. Live check without audio: `python scripts/smoke_live.py "question"`.
 
 Version format `YYYYMMDD.X` (build day and the counter of that day); `python scripts/release.py` prints the next free one from the git tags.
 
-## Support
+## ☕ Support
 
 <div align="center">
 
@@ -91,10 +96,12 @@ Version format `YYYYMMDD.X` (build day and the counter of that day); `python scr
 
 </div>
 
-## License
+## 📄 License
 
 MIT License - see the `LICENSE` file for details.
 
-## Author
+## 👤 Author
 
 Miroslav Dvorak - mirecekd@gmail.com
+
+<img src="https://capsule-render.vercel.app/api?type=waving&height=110&section=footer&color=0:e7ac80,55:303635,100:202323" width="100%" alt="" />

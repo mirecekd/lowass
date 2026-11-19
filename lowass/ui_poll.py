@@ -22,14 +22,30 @@ def make_handlers(win: Any) -> dict[str, Callable[[str], None]]:
     def status(text: str) -> None:
         win.status.configure(text=text[:70])  # configure() returns the options: discarded here
 
+    def caption(text: str) -> None:  # the small panel and the transcript window get every caption, open or not
+        win.captions.update(text)
+        win.transcript.caption(text)
+
+    def caption_tr(text: str) -> None:
+        win.captions.translation(text)
+        win.transcript.translation(text)
+
+    def caption_clear(_text: str) -> None:
+        win.captions.clear()
+        win.transcript.clear()
+
+    def translate(text: str) -> None:  # from the app: no on_translate call
+        win.translate.set(text == "1")
+        win.show_transcript(text == "1")
+
     return {
         "status": status,
         "stats": win.stats.show,
         "private": lambda t: win.private.set(t == "1"),      # from a hotkey: no on_private call
-        "translate": lambda t: win.translate.set(t == "1"),  # from the app: no on_translate call
-        "caption": win.captions.update,
-        "caption_tr": win.captions.translation,
-        "caption_clear": lambda _t: win.captions.clear(),
+        "translate": translate,
+        "caption": caption,
+        "caption_tr": caption_tr,
+        "caption_clear": caption_clear,
         "hint": hint,
         "hint_clear": lambda _t: win.card.hide(),
         "hint_copy": lambda _t: win.card.copy(),  # the hotkey: copy what the visible card says
