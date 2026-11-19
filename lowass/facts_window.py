@@ -8,6 +8,7 @@ from collections.abc import Callable
 from tkinter import scrolledtext
 
 from .facts_logic import OpenOnce, sheet_rows
+from .layout import geometry_string
 from .popup import _disable_activation
 from .popup_logic import Rect
 from .ui_parts import BACKGROUND, FINAL_COLOR
@@ -53,7 +54,7 @@ class FactsWindow:
     def open(self) -> None:
         window = self._ensure()
         slot = self._slot()
-        window.geometry(f"{slot.w}x{slot.h}+{slot.x}+{slot.y}")
+        window.geometry(geometry_string(slot))
         window.deiconify()
         window.lift()
         self._render()

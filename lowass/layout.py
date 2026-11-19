@@ -15,6 +15,18 @@ def fit(area: Rect, r: Rect) -> Rect:
     return Rect(min(max(r.x, area.x), area.x + area.w - w), min(max(r.y, area.y), area.y + area.h - h), w, h)
 
 
+def geometry_string(r: Rect) -> str:
+    """Tk geometry for `r`. ALWAYS '+x+y': a bare '-N' would mean 'N px from the RIGHT / BOTTOM edge', not a negative
+    coordinate, so a window on a monitor left of or above the primary one would land in a completely different place.
+    '+-N' is the real negative coordinate."""
+    return f"{r.w}x{r.h}+{r.x}+{r.y}"
+
+
+def moved(wanted: Rect, seen: Rect, tolerance: int = 40) -> bool:
+    """True when a window is further from where it was asked to be than borders and shadows can explain."""
+    return abs(wanted.x - seen.x) > tolerance or abs(wanted.y - seen.y) > tolerance
+
+
 def start_rect(area: Rect, width: int, height: int, x: int, y: int) -> Rect:
     """Where the main window starts. A negative x counts from the right edge of the area (so -20 = 20 px from it)."""
     w = min(width, area.w)
