@@ -104,9 +104,15 @@ target = "cs"
 understood = ["cs", "sk", "en"]    # languages you understand: no translation for them. Add "de" if you do not need German translated.
 
 [wake]
-# A sentence of YOURS (the microphone) that starts with one of these phrases goes to the assistant as a question,
-# like typing it into the chat box. A bare phrase waits for the next sentence (armed_sec seconds).
+# A sentence of YOURS (the microphone) that starts with one of these phrases, or ends with one, goes to the assistant as a
+# question, like typing it into the chat box. A bare phrase waits for the next sentence (armed_sec seconds).
+# "Jarvis, what now?" and "What now, Jarvis?" both work; a name in the MIDDLE of a sentence ("Jarvis is right") does not.
 phrases = ["Tose Samo", "Samo Seto", "Samo Tose"]
+# Words that may stand BEFORE the phrase: "hele Tose Samo, ...", "hej kamo Tose Samo ..." (at most two of them).
+lead_ins = ["hey", "hej", "hele", "ty", "kámo"]
+# Phrases that count only at the START (also after a lead-in), never at the end of a sentence: for a phrase that is
+# also an ordinary word the end of a sentence would wake the assistant by accident.
+start_only = []
 armed_sec = 10
 
 [groq]

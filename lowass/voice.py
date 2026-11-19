@@ -73,14 +73,15 @@ def build_voice(cfg: Any, post: Post, transcript: Any, meeting: Any, paused: Cal
     """Voice from lowass.toml: [translate] (translator only when enabled; the button decides when it is used),
     [wake] phrases, and the start state of the Translate button (`on_start`)."""
     from .translate import Translator
-    from .wake import WakeWords
+    from .wake import LEAD_INS, WakeWords
 
     tc, tr, w = cfg.section("transcribe"), cfg.section("translate"), cfg.section("wake")
     translator = None
     if tr.get("enabled", True):
         translator = Translator(tc["profile"], tc["region"], tr.get("target", "cs"),
                                 tuple(tr.get("understood", ("cs", "sk", "en"))))
-    wake = WakeWords(list(w["phrases"])) if w.get("phrases") else None
+    wake = WakeWords(list(w["phrases"]), lead_ins=list(w.get("lead_ins", LEAD_INS)),
+                     start_only=list(w.get("start_only", []))) if w.get("phrases") else None
     voice = Voice(post, transcript, meeting, cfg.section("audio")["my_label"], paused, ask, translator, wake,
                   float(w.get("armed_sec", 10)))
     voice.translate_on = bool(tr.get("on_start", False)) and translator is not None

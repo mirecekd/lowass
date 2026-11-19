@@ -85,3 +85,55 @@ def test_split_words_are_not_fuzzy_and_ordinary_speech_does_not_wake(wake: WakeW
     assert wake.strip("ale to se samo stalo") is None  # the phrase must be at the START
     assert wake.strip("to se") is None
     assert wake.strip("Samo to je dobre") is None  # 'to je' would be 'toje', one typo away from 'tose': must NOT match
+
+
+def named():
+    return WakeWords(["Jarvis", "Botek", "Friday"], start_only=["Friday"])
+
+
+def test_lead_in_words_may_come_before_the_phrase():
+    w = named()
+    for text in ("Hele Jarvis, co myslis?", "hey Jarvis co myslis?", "Hej, Jarvis, co myslis?", "kamo Jarvis, co myslis?",
+                 "Ty Jarvis co myslis?", "hej kámo Jarvis, co myslis?"):
+        assert w.strip(text) == "co myslis?", text
+
+
+def test_only_the_listed_lead_ins_and_at_most_two_are_allowed():
+    w = named()
+    assert w.strip("No a Jarvis, jak to vidis") is None  # 'no' and 'a' are not lead-in words
+    assert w.strip("hej hele kamo Jarvis, ahoj") is None  # three lead-ins are too many
+    assert WakeWords(["Jarvis"], lead_ins=["slysis"]).strip("slysis Jarvis, ahoj") == "ahoj"  # the list is configurable
+    assert WakeWords(["Jarvis"], lead_ins=[]).strip("hele Jarvis, ahoj") is None
+
+
+def test_the_phrase_at_the_end_of_a_sentence_wakes_it_and_the_question_is_what_came_before():
+    w = named()
+    assert w.strip("Co myslis, Jarvis?") == "Co myslis"
+    assert w.strip("Co myslis o tom, Botek.") == "Co myslis o tom"
+    assert w.strip("Jak to vidis ty, Jarvis") == "Jak to vidis ty"
+
+
+def test_a_name_in_the_middle_of_a_sentence_is_only_a_mention():
+    w = named()
+    assert w.strip("Myslim, ze Jarvis ma pravdu") is None
+    assert w.strip("A pak jsem mu rekl Jarvis ma pravdu a odesel") is None
+
+
+def test_a_phrase_that_is_an_ordinary_word_counts_only_at_the_start():
+    w = named()
+    assert w.strip("Pak to posleme Friday") is None  # 'on Friday' must not wake the assistant
+    assert w.strip("Friday, what do you think?") == "what do you think?"
+    assert w.strip("Hey Friday, what now?") == "what now?"
+    assert WakeWords(["Friday"]).strip("Pak to posleme Friday") == "Pak to posleme"  # without start_only it would
+
+
+def test_a_bare_phrase_still_arms_the_next_sentence():
+    w = named()
+    assert w.strip("Jarvis") == "" and w.strip("Hele Jarvis.") == ""
+
+
+def test_the_end_rule_needs_something_before_the_phrase_and_works_for_split_words():
+    w = WakeWords(["Tose Samo"])
+    assert w.strip("Tose Samo") == ""  # nothing before it: the start rule, an armed phrase
+    assert w.strip("Co delame, to se samo") == "Co delame"  # Transcribe split 'Tose' into 'to se'
+    assert w.strip("To se stane samo") is None

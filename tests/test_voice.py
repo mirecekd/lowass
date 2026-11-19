@@ -298,3 +298,15 @@ def test_capture_live_private_lets_the_running_utterance_finish_and_starts_nothi
 def test_to_pcm16_is_not_normalised_and_clips():
     out = np.frombuffer(to_pcm16(np.array([0.5, -2.0, 2.0], dtype=np.float32)), dtype=np.int16)
     assert out[0] == 16383 and out[1] == -32767 and out[2] == 32767
+
+
+def test_a_question_that_ends_with_the_wake_word_goes_to_the_assistant_without_the_word():
+    v, s, tr, _me = make()
+    v.final("Ja", "Co si o tom myslis, Tose Samo", "cs-CZ")
+    assert s.asked == ["Co si o tom myslis"] and not tr.added  # the question is not part of the conversation
+
+
+def test_a_lead_in_word_before_the_wake_word_is_not_part_of_the_question():
+    v, s, _tr, _me = make()
+    v.final("Ja", "Hele Tose Samo, kolik je hodin?", "cs-CZ")
+    assert s.asked == ["kolik je hodin?"]
