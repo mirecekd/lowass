@@ -1,40 +1,52 @@
 # tests/test_popup_logic.py
 from lowass.popup_logic import CardQueue, Rect, place_card, slide_positions
 
-SCREEN_W = 1920
+AREA = Rect(0, 0, 1920, 1032)  # a 1080 px screen minus a 48 px taskbar
+SECOND = Rect(1920, 0, 2560, 1400)  # a second monitor to the right of the first
 SCREEN_H = 1080
 
 
 def test_place_card_prefers_left_of_main_window():
     main = Rect(800, 100, 400, 300)
-    assert place_card(main, 340, 200, SCREEN_W, SCREEN_H) == (452, 100, "left")
+    assert place_card(main, 340, 200, AREA) == (452, 100, "left")
 
 
 def test_place_card_left_blocked_goes_below():
     main = Rect(100, 100, 400, 300)
-    assert place_card(main, 340, 200, SCREEN_W, SCREEN_H) == (100, 408, "below")
+    assert place_card(main, 340, 200, AREA) == (100, 408, "below")
 
 
 def test_place_card_below_blocked_goes_inside():
     main = Rect(100, 700, 400, 300)
-    assert place_card(main, 340, 200, SCREEN_W, SCREEN_H) == (100, 700, "inside")
+    assert place_card(main, 340, 200, AREA) == (100, 700, "inside")
 
 
 def test_place_card_below_wider_than_screen_goes_inside():
     main = Rect(100, 100, 400, 300)
-    assert place_card(main, 340, 200, 300, SCREEN_H)[2] == "inside"
+    assert place_card(main, 340, 200, Rect(0, 0, 300, 1032))[2] == "inside"
 
 
 def test_place_card_clamps_y_for_left_side():
     main = Rect(800, 1000, 400, 60)
-    x, y, side = place_card(main, 340, 200, SCREEN_W, SCREEN_H)
+    x, y, side = place_card(main, 340, 200, AREA)
     assert side == "left"
     assert (x, y) == (452, SCREEN_H - 48 - 200)
 
 
+def test_place_card_on_a_second_monitor_stays_on_it():
+    main = Rect(4000, 60, 460, 760)  # near the right edge of monitor 2
+    assert place_card(main, 340, 200, SECOND) == (4000 - 340 - 8, 60, "left")
+
+
+def test_place_card_never_crosses_onto_the_neighbour_monitor():
+    main = Rect(1930, 60, 460, 760)  # at the LEFT edge of monitor 2: the left side would be on monitor 1
+    x, _y, side = place_card(main, 340, 200, SECOND)
+    assert side != "left" and x >= SECOND.x
+
+
 def test_place_card_clamps_negative_y_for_left_side():
     main = Rect(800, -20, 400, 300)
-    assert place_card(main, 340, 200, SCREEN_W, SCREEN_H) == (452, 0, "left")
+    assert place_card(main, 340, 200, AREA) == (452, 0, "left")
 
 
 def test_slide_positions_left_ends_exactly_at_x():

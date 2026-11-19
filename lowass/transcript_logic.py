@@ -1,10 +1,9 @@
 # lowass/transcript_logic.py
-"""Pure logic of the transcript window: lines per speaker, translation under the final line, placement left of the card."""
+"""Pure logic of the transcript window: lines per speaker and the translation hanging under the final line."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .popup_logic import Rect
 from .ui_parts import pick_line
 
 
@@ -52,14 +51,3 @@ class TranscriptLines:
         self.entries.clear()
         self._open.clear()
         self._last_final.clear()
-
-
-def place_transcript(main: Rect, card_w: int, w: int, h: int, screen_w: int, screen_h: int, gap: int = 8,
-                     taskbar: int = 48) -> tuple[int, int]:
-    """Left of the hint card, which is itself left of the main window. When there is no room it overlaps the card
-    (the card is short-lived); the window is always kept on the screen."""
-    x = main.x - card_w - gap - w - gap
-    if x < 0:
-        x = max(0, main.x - w - gap)
-    y = min(max(main.y, 0), max(0, screen_h - taskbar - h))
-    return min(x, max(0, screen_w - w)), y

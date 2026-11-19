@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .popup_logic import Rect
-from .transcript_logic import place_transcript
-
 HEADINGS = ("NUMBERS", "DATES", "PEOPLE", "AGREED", "OPEN", "CISLA", "TERMINY", "LIDE", "DOMLUVENO", "OTEVRENE")
 
 
@@ -38,11 +35,3 @@ class OpenOnce:
 
     def rearm(self) -> None:
         self.armed = True
-
-
-def place_facts(main: Rect, card_w: int, transcript_w: int, w: int, h: int, screen_w: int, screen_h: int,
-                transcript_open: bool, gap: int = 8, taskbar: int = 48) -> tuple[int, int]:
-    """Left of the hint card; when the transcript window is open too, to the left of THAT one. Kept on the screen."""
-    base_w = card_w + (transcript_w + gap if transcript_open else 0)
-    x, y = place_transcript(main, base_w, w, h, screen_w, screen_h, gap, taskbar)
-    return x, y

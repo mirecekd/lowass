@@ -28,20 +28,18 @@ def place_card(
     main: Rect,
     card_w: int,
     card_h: int,
-    screen_w: int,
-    screen_h: int,
+    area: Rect,
     gap: int = 8,
-    taskbar: int = 48,
 ) -> tuple[int, int, str]:
-    """Return (x, y, side); side is 'left', 'below' or 'inside'."""
-    usable_bottom = screen_h - taskbar
+    """Return (x, y, side); side is 'left', 'below' or 'inside'. Everything is inside `area`: the work area (no taskbar)
+    of the monitor the main window is on, so on a second monitor the card stays on that monitor."""
     left_x = main.x - card_w - gap
-    if left_x >= 0:
-        max_y = max(0, usable_bottom - card_h)
-        return left_x, min(max(main.y, 0), max_y), "left"
+    if left_x >= area.x:
+        max_y = max(area.y, area.y + area.h - card_h)
+        return left_x, min(max(main.y, area.y), max_y), "left"
     below_y = main.y + main.h + gap
-    fits_horizontally = main.x + card_w <= screen_w
-    if fits_horizontally and below_y + card_h <= usable_bottom:
+    fits_horizontally = main.x + card_w <= area.x + area.w
+    if fits_horizontally and below_y + card_h <= area.y + area.h:
         return main.x, below_y, "below"
     return main.x, main.y, "inside"
 

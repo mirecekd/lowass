@@ -13,6 +13,7 @@ from .popup import HintCard
 from .popup_logic import Rect
 from .transcript_window import TranscriptWindow
 from .ui_parts import BACKGROUND
+from .ui_place import main_geometry, side_slots, start_geometry, work_area
 from .ui_poll import make_handlers
 from .ui_toolbar import build_toolbar
 from .ui_widgets import (
@@ -52,9 +53,7 @@ class FloatingWindow:
         r.attributes("-topmost", True)
         r.attributes("-alpha", cfg["alpha"])
         r.configure(bg=BACKGROUND)
-        sw = r.winfo_screenwidth()
-        x = cfg["x"] if cfg["x"] >= 0 else sw - cfg["width"] + cfg["x"]
-        r.geometry(f"{cfg['width']}x{cfg['height']}+{x}+{cfg['y']}")
+        r.geometry(start_geometry(r, cfg))  # on [ui].monitor: by default the monitor with the highest number
 
         tb = build_toolbar(
             r, font, auto=auto, models=models, model=model, projects=dict(projects or {}), project=project,
@@ -83,10 +82,10 @@ class FloatingWindow:
         self.entry.pack(fill="x", padx=6, pady=(0, 6), ipady=4)
         self.entry.bind("<Return>", self._submit)
         self.card = HintCard(r, self._geometry, on_copy or self._copy, ttl_sec=hint_ttl,
-                             on_inline=lambda t: self._append("auto", t))
+                             on_inline=lambda t: self._append("auto", t), area=self._area)
         self._on_translate = on_translate
-        self.transcript = TranscriptWindow(r, self._geometry, font, self._transcript_closed)
-        self.facts = FactsWindow(r, self._geometry, font, self.transcript.is_open, self.facts_btn.set)
+        self.transcript = TranscriptWindow(r, lambda: side_slots(r)[0], font, self._transcript_closed)
+        self.facts = FactsWindow(r, lambda: side_slots(r)[1], font, self.facts_btn.set)
         if translate_on:
             self.show_transcript(True)
         r.after(100, self._poll)
@@ -114,10 +113,12 @@ class FloatingWindow:
             self.transcript.close()
 
     def _geometry(self) -> Rect:
-        """Where the main window is (the card and the transcript window sit next to it)."""
-        r = self.root
-        r.update_idletasks()
-        return Rect(r.winfo_x(), r.winfo_y(), r.winfo_width(), r.winfo_height())
+        """Where the main window is."""
+        return main_geometry(self.root)
+
+    def _area(self) -> Rect:
+        """The work area of the monitor the main window is on (the card must stay on that monitor)."""
+        return work_area(self.root)
 
     def _copy(self, text: str) -> None:
         self.root.clipboard_clear()

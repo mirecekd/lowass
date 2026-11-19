@@ -1,7 +1,6 @@
 # tests/test_transcript_window.py
 """Transcript window logic (pure): lines, translation under the last final line, placement left of the hint card."""
-from lowass.popup_logic import Rect
-from lowass.transcript_logic import TranscriptLines, place_transcript
+from lowass.transcript_logic import TranscriptLines
 
 
 def test_partial_becomes_final_and_translation_hangs_under_it():
@@ -34,17 +33,6 @@ def test_clear_empties_everything():
     t.update("Ja", "final", "x")
     t.clear()
     assert t.entries == []
-
-
-def test_window_sits_left_of_the_card_which_sits_left_of_the_main_window():
-    main = Rect(1440, 60, 460, 760)  # right edge of a 1920 screen
-    x, y = place_transcript(main, 340, 420, 520, 1920, 1080)
-    assert x == 1440 - 340 - 8 - 420 - 8 and y == 60  # card width + gaps + own width
-
-
-def test_window_stays_on_screen_when_there_is_no_room():
-    x, y = place_transcript(Rect(300, 900, 460, 760), 340, 420, 520, 1920, 1080)
-    assert x >= 0 and 0 <= y <= 1080 - 48 - 520
 
 
 def test_a_late_translation_lands_on_its_own_sentence_not_on_the_newest_one():

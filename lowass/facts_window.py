@@ -7,24 +7,21 @@ import tkinter as tk
 from collections.abc import Callable
 from tkinter import scrolledtext
 
-from .facts_logic import OpenOnce, place_facts, sheet_rows
+from .facts_logic import OpenOnce, sheet_rows
 from .popup import _disable_activation
 from .popup_logic import Rect
-from .transcript_window import CARD_WIDTH
-from .transcript_window import WIDTH as TRANSCRIPT_WIDTH
 from .ui_parts import BACKGROUND, FINAL_COLOR
 
-WIDTH, HEIGHT = 380, 520
 HEADING_COLOR = "#e7ac80"
 
 
 class FactsWindow:
     """Never takes the keyboard focus (same as the card). The X only hides it; the Facts button opens it again."""
 
-    def __init__(self, root: tk.Tk, main_geometry: Callable[[], Rect], font: tuple[str, int],
-                 transcript_open: Callable[[], bool], on_visible: Callable[[bool], None] = lambda _v: None):
-        self._root, self._main_geometry, self._font = root, main_geometry, font
-        self._transcript_open, self._on_visible = transcript_open, on_visible
+    def __init__(self, root: tk.Tk, slot: Callable[[], Rect], font: tuple[str, int],
+                 on_visible: Callable[[bool], None] = lambda _v: None):
+        self._root, self._slot, self._font = root, slot, font
+        self._on_visible = on_visible
         self._auto = OpenOnce()
         self._sheet = ""
         self._window: tk.Toplevel | None = None
@@ -55,9 +52,8 @@ class FactsWindow:
 
     def open(self) -> None:
         window = self._ensure()
-        x, y = place_facts(self._main_geometry(), CARD_WIDTH, TRANSCRIPT_WIDTH, WIDTH, HEIGHT, self._root.winfo_screenwidth(),
-                           self._root.winfo_screenheight(), self._transcript_open())
-        window.geometry(f"{WIDTH}x{HEIGHT}+{x}+{y}")
+        slot = self._slot()
+        window.geometry(f"{slot.w}x{slot.h}+{slot.x}+{slot.y}")
         window.deiconify()
         window.lift()
         self._render()

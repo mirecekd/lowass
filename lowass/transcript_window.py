@@ -9,7 +9,7 @@ from tkinter import scrolledtext
 
 from .popup import _disable_activation
 from .popup_logic import Rect
-from .transcript_logic import TranscriptLines, place_transcript
+from .transcript_logic import TranscriptLines
 from .ui_parts import (
     BACKGROUND,
     FINAL_COLOR,
@@ -19,15 +19,13 @@ from .ui_parts import (
     parse_translation,
 )
 
-WIDTH, HEIGHT, CARD_WIDTH = 420, 520, 340
-
 
 class TranscriptWindow:
     """Never takes the keyboard focus (same trick as the hint card); can be dragged and closed with the Translate button."""
 
-    def __init__(self, root: tk.Tk, main_geometry: Callable[[], Rect], font: tuple[str, int],
+    def __init__(self, root: tk.Tk, slot: Callable[[], Rect], font: tuple[str, int],
                  on_closed: Callable[[], None] = lambda: None):
-        self._root, self._main_geometry, self._font = root, main_geometry, font
+        self._root, self._slot, self._font = root, slot, font
         self._on_closed = on_closed  # the user closed the window with the X: the Translate button must go off too
         self._lines = TranscriptLines()
         self._window: tk.Toplevel | None = None
@@ -38,9 +36,8 @@ class TranscriptWindow:
 
     def open(self) -> None:
         window = self._ensure()
-        main = self._main_geometry()
-        x, y = place_transcript(main, CARD_WIDTH, WIDTH, HEIGHT, self._root.winfo_screenwidth(), self._root.winfo_screenheight())
-        window.geometry(f"{WIDTH}x{HEIGHT}+{x}+{y}")
+        slot = self._slot()
+        window.geometry(f"{slot.w}x{slot.h}+{slot.x}+{slot.y}")
         window.deiconify()
         window.lift()
         self._render()

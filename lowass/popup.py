@@ -45,9 +45,11 @@ class HintCard:
         width: int = 340,
         on_inline: Callable[[str], None] | None = None,
         ttl_sec: float = 25.0,
+        area: Callable[[], Rect] | None = None,
     ) -> None:
         self._root = root
         self._main_geometry = main_geometry
+        self._area = area  # work area of the monitor the main window is on; None = the Tk screen (one monitor)
         self._on_copy = on_copy
         self._on_inline = on_inline
         self._width = width
@@ -70,13 +72,8 @@ class HintCard:
         self._update_badge()
         window.update_idletasks()
         card_h = window.winfo_reqheight()
-        x, y, side = place_card(
-            self._main_geometry(),
-            self._width,
-            card_h,
-            self._root.winfo_screenwidth(),
-            self._root.winfo_screenheight(),
-        )
+        area = self._area() if self._area is not None else Rect(0, 0, self._root.winfo_screenwidth(), self._root.winfo_screenheight())
+        x, y, side = place_card(self._main_geometry(), self._width, card_h, area)
         if side == "inside":
             self._queue.dismiss()
             window.withdraw()

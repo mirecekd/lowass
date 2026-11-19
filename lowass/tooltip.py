@@ -5,19 +5,22 @@ from __future__ import annotations
 import sys
 import tkinter as tk
 
+from .monitors import area_for, tk_screen
 from .popup import _disable_activation
+from .popup_logic import Rect
 
 DELAY_MS = 350
 WRAP_PX = 380
 BG, FG = "#ffffe1", "#000000"
 
 
-def tip_position(wx: int, wy: int, ww: int, wh: int, tw: int, th: int, sw: int, sh: int, gap: int = 6) -> tuple[int, int]:
-    """Top-left of the tooltip: above the widget, below it when there is no room above; always kept on the screen."""
-    x = min(max(0, wx), max(0, sw - tw))
+def tip_position(wx: int, wy: int, ww: int, wh: int, tw: int, th: int, area: Rect, gap: int = 6) -> tuple[int, int]:
+    """Top-left of the tooltip: above the widget, below it when there is no room above; always kept inside `area`
+    (the work area of the monitor the widget is on)."""
+    x = min(max(area.x, wx), max(area.x, area.x + area.w - tw))
     y = wy - th - gap
-    if y < 0:
-        y = min(wy + wh + gap, max(0, sh - th))
+    if y < area.y:
+        y = min(wy + wh + gap, max(area.y, area.y + area.h - th))
     return x, y
 
 
@@ -58,8 +61,9 @@ class Tooltip:
         tk.Label(window, text=self._text, justify="left", wraplength=WRAP_PX, bg=BG, fg=FG, relief="solid", borderwidth=1,
                  padx=6, pady=4, font=("Segoe UI", 9)).pack()
         window.update_idletasks()
-        x, y = tip_position(w.winfo_rootx(), w.winfo_rooty(), w.winfo_width(), w.winfo_height(),
-                            window.winfo_reqwidth(), window.winfo_reqheight(), w.winfo_screenwidth(), w.winfo_screenheight())
+        wx, wy, ww, wh = w.winfo_rootx(), w.winfo_rooty(), w.winfo_width(), w.winfo_height()
+        area = area_for(Rect(wx, wy, ww, wh), tk_screen(w))  # the monitor the button is on
+        x, y = tip_position(wx, wy, ww, wh, window.winfo_reqwidth(), window.winfo_reqheight(), area)
         window.geometry(f"+{x}+{y}")
         if sys.platform == "win32":
             _disable_activation(window)
