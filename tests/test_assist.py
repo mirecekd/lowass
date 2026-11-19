@@ -237,3 +237,29 @@ def test_a_question_that_waits_too_long_says_so_and_automatic_work_never_waits(t
     posts.clear()
     flow.work("auto", None, "auto")  # an automatic check just skips: nobody is waiting for it
     assert posts == []
+
+
+def test_clear_and_a_project_switch_also_empty_the_caption_panel_and_the_transcript_window() -> None:
+    """Field bug: after Clear the transcript window still showed the old meeting (only Private used to clear it)."""
+    assist, _flow, _meeting, posts = build()
+    assist.reset()  # what App.clear_context and App._switch call
+    assert ("caption_clear", "") in posts and ("facts_reset", "") in posts and ("hint_clear", "") in posts
+
+
+def test_the_caption_clear_message_empties_both_the_panel_and_the_transcript_window() -> None:
+    from types import SimpleNamespace
+
+    from lowass.transcript_logic import TranscriptLines
+    from lowass.ui_poll import make_handlers
+
+    lines, panel = TranscriptLines(), SimpleNamespace(cleared=0)
+    lines.update("Pro", "final", "Der Server ist weg")
+    lines.translate("Pro", "Server je pryc", "Der Server ist weg")
+    win = SimpleNamespace(
+        captions=SimpleNamespace(clear=lambda: setattr(panel, "cleared", panel.cleared + 1), update=lambda t: None,
+                                 translation=lambda t: None, show=lambda t: None),
+        transcript=SimpleNamespace(clear=lines.clear, caption=lambda t: None, translation=lambda t: None),
+        stats=SimpleNamespace(show=lambda t: None), private=None, translate=None, card=None,
+        facts=SimpleNamespace(show_sheet=lambda t: None))
+    make_handlers(win)["caption_clear"]("")
+    assert lines.entries == [] and panel.cleared == 1

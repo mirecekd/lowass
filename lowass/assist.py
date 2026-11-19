@@ -47,13 +47,14 @@ class Assist:
             self.sheet.feed(f"{speaker}: {text}")
 
     def reset(self) -> None:
-        """Clear or a project switch: a new meeting starts with an empty sheet and no pending question."""
+        """Clear or a project switch: a new meeting starts with an empty sheet, no pending question and empty captions."""
         if self.sheet is not None:
             self.sheet.reset()
         if self.watcher is not None:
             self.watcher.reset()
         self.post("hint_clear", "")
         self.post("facts_reset", "")
+        self.post("caption_clear", "")  # a new meeting: the caption panel AND the transcript window start empty
 
     def run(self) -> None:
         while not self.stop.wait(1.0):

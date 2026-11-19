@@ -7,13 +7,14 @@ import tkinter as tk
 from collections.abc import Callable
 from dataclasses import dataclass
 from tkinter import ttk
+from typing import Literal
 
 from .languages import DEFAULT
 from .ui_parts import BACKGROUND
 from .ui_widgets import ToggleButton, facts_button, private_button, translate_button
 
 Font = tuple[str, int]
-MODEL_WIDTH, LANG_WIDTH, PROJECT_WIDTH = 11, 8, 12  # characters; the model and project dropdowns are narrow on purpose
+MODEL_WIDTH, LANG_WIDTH, PROJECT_WIDTH = 14, 8, 14  # characters; the model and project boxes also grow with the window
 
 
 @dataclass
@@ -28,9 +29,9 @@ class Toolbar:
 
 
 def _combo(parent: tk.Misc, var: tk.StringVar, values: list[str], font: Font, width: int,
-           on_pick: Callable[[str], None]) -> ttk.Combobox:
+           on_pick: Callable[[str], None], side: Literal["left", "right"] = "left", grow: bool = False) -> ttk.Combobox:
     box = ttk.Combobox(parent, textvariable=var, values=values, state="readonly", font=font, width=width)
-    box.pack(side="left", padx=(4, 0))
+    box.pack(side=side, padx=(4, 0), fill="x" if grow else "none", expand=grow)
     box.bind("<<ComboboxSelected>>", lambda _e: on_pick(var.get()))
     return box
 
@@ -51,9 +52,9 @@ def build_toolbar(root: tk.Misc, font: Font, *, auto: bool, models: list[str], m
     tk.Checkbutton(first, text="auto", variable=auto_var, command=lambda: on_auto(auto_var.get()), bg=BACKGROUND, fg="#d4d4d4",
                    selectcolor=BACKGROUND, activebackground=BACKGROUND, font=font).pack(side="left")
     model_var, lang_var = tk.StringVar(value=model), tk.StringVar(value=DEFAULT)
-    _combo(first, model_var, models, font, MODEL_WIDTH, on_model)
-    if languages:
-        _combo(first, lang_var, [DEFAULT, *languages], font, LANG_WIDTH, on_language)
+    if languages:  # packed FIRST on the right: it keeps its width, the model box then takes all the room that is left
+        _combo(first, lang_var, [DEFAULT, *languages], font, LANG_WIDTH, on_language, side="right")
+    _combo(first, model_var, models, font, MODEL_WIDTH, on_model, grow=True)
 
     second = tk.Frame(root, bg=BACKGROUND)
     second.pack(fill="x", padx=6, pady=(4, 0))
@@ -62,5 +63,5 @@ def build_toolbar(root: tk.Misc, font: Font, *, auto: bool, models: list[str], m
     facts = facts_button(second, font, on_facts)
     project_var = tk.StringVar(value=projects.get(project, project))
     if projects:
-        _combo(second, project_var, list(projects.values()), font, PROJECT_WIDTH, on_project)
+        _combo(second, project_var, list(projects.values()), font, PROJECT_WIDTH, on_project, grow=True)
     return Toolbar(private, translate, facts, auto_var, model_var, project_var, lang_var)
