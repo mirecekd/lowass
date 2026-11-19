@@ -47,7 +47,7 @@ class App:
         self.login = LoginManager(cfg.section("transcribe")["profile"], self.ui.post)
         self.controls = Controls(cfg, self.ui.post, self.flow, self.login)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
-        self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.is_set, self.flow.ask)
+        self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask)
         install_excepthook(self.ui.post)
         self.assist = Assist(cfg, self.flow, self.meeting, self.ui.post, lambda: self.model)
         self.voice.tap = self.assist.tap

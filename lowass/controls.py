@@ -23,12 +23,12 @@ class Controls:
             self.flow.shortcut(prompt, label)
 
     def set_private(self, on: bool, sync_button: bool = False) -> None:
-        """Private: nothing is captured, sent, transcribed or stored from the audio, and the assistant makes no automatic
-        comments, until it is switched off. A question you type or a button you press still works (your own act)."""
+        """Private is a FREEZE: nothing new is listened to, sent or stored and the assistant makes no automatic comments,
+        but what is already running finishes and stays on screen (captions are NOT cleared). A question you type or a
+        button you press still works (your own act)."""
         if on:
             self.flow.private.set()
-            self.post("caption_clear", "")
-            self.post("status", "PRIVATE: not listening")
+            self.post("status", "PRIVATE: frozen (finishing what was running)")
         else:
             self.flow.private.clear()
             self.post("status", self.flow.idle_status())

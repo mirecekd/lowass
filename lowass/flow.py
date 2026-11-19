@@ -13,6 +13,7 @@ from collections.abc import Callable
 from .agent import NOTHING
 from .config import Config
 from .debug import Stats
+from .freeze import make_gate
 from .meeting import Closed, Meeting, meeting_text
 from .screen import grab_primary
 from .session import Session
@@ -32,7 +33,7 @@ class Flow:
         self.idle_status = idle_status
         self.auto = bool(cfg.section("agent")["auto"])
         self.stop = threading.Event()
-        self.private = threading.Event()  # set = Private mode: nothing is captured, stored or sent, the assistant is quiet
+        self.private = make_gate(cfg)  # set = Private (a freeze): nothing new is listened to, sent or stored; running work finishes
         self.dbg = cfg.section("debug")
         self.extra_context: Callable[[], str] = lambda: ""  # e.g. the facts sheet, put before the recent transcript
 

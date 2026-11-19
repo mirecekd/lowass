@@ -9,6 +9,7 @@ from tkinter import ttk
 from typing import Any
 
 from .debug import parse_rows
+from .tooltip import attach
 from .ui_parts import (
     BACKGROUND,
     FINAL_COLOR,
@@ -108,6 +109,8 @@ class ShortcutBar:
         self.buttons = [tk.Button(self.frame, text=label, font=small, padx=2, pady=1,
                                   command=lambda p=prompt, n=label: on_shortcut(p, n))
                         for label, prompt in zip(self.labels, prompts, strict=True)]
+        for button, s in zip(self.buttons, shortcuts, strict=True):
+            attach(button, str(s.get("tip") or s.get("prompt") or ""))  # the yellow tooltip shows the whole prompt
         self.char_px = tkfont.Font(font=small).measure("0")
         self._width = 0
         self.frame.bind("<Configure>", self._layout)

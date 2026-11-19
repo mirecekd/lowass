@@ -81,14 +81,16 @@ class Config:
         return f"{base}\nPROJECT: {proj.get('name', project_key)}\n{extra}\n" if extra else base
 
     def shortcuts(self) -> list[dict[str, str]]:
-        """[[ui.shortcuts]] buttons as {label, prompt, action}. A button needs a label and either a prompt or
-        action = "check"; a broken entry is skipped (it must never stop the app from starting)."""
+        """[[ui.shortcuts]] buttons as {label, prompt, action, tip}. A button needs a label and either a prompt or
+        action = "check"; a broken entry is skipped (it must never stop the app from starting). `tip` is the yellow
+        tooltip: the entry's own `hint`, else its prompt, else (fact-check) the check prompt."""
         out = []
         for s in self.section("ui").get("shortcuts", []):
             label = str(s.get("label", "")).strip()
             action, prompt = str(s.get("action", "")), str(s.get("prompt", "")).strip()
             if label and (prompt or action == "check"):
-                out.append({"label": label, "prompt": prompt, "action": action})
+                tip = str(s.get("hint", "")).strip() or prompt or str(self.section("prompts").get("check", "")).strip()
+                out.append({"label": label, "prompt": prompt, "action": action, "tip": tip})
         return out
 
     def missing_env(self, names: tuple[str, ...] = REQUIRED_ENV) -> list[str]:

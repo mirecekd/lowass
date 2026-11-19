@@ -152,6 +152,7 @@ caption_lines = 4             # lines of the live captions (partial = grey, fina
 # Buttons above the chat box. Each runs its prompt over the WHOLE meeting so far (not only the last minutes).
 # `action = "check"` is the fact-check of the recent conversation (the same as Ctrl+Alt+Space).
 # Add, remove or reword buttons freely; keep the labels short, the buttons are narrow.
+# Hovering a button shows a yellow tooltip with its whole prompt; `hint = "..."` on a button replaces it with a short text.
 [[ui.shortcuts]]
 label = "Fact-check"
 action = "check"
@@ -194,6 +195,12 @@ enabled = true
 model = "global.cohere.embed-v4:0"
 dimensions = 1536             # 256, 512, 1024 and 1536 were verified; changing it later needs a new memory.db
 timeout_sec = 60
+
+[private]
+# Private is a FREEZE: it stops listening at once, but the sentence being said, its translation and a request that is
+# already with the model finish and show up. After this many seconds the recognised text of that sentence is no longer
+# accepted either (everything is muted). Only used with transcribe mode = "live".
+drain_sec = 10
 
 [hint]
 # The assistant offers a suggested answer when the other side asked YOU something (a question, your name, "could you ...")

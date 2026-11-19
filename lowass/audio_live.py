@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from .dsp import prepare_audio_chunk
-from .gate import Gate, GateEvent
+from .gate import Gate
 
 log = logging.getLogger("lowass.audio")
 
@@ -25,7 +25,8 @@ def capture_live(label: str, stream: Any, rate: int, channels: int, chunk: int, 
     """Reads the device, cuts utterances with the gate and hands the events to `live` (LiveTranscriber.feed).
 
     While `paused()` is true (the Private button) the device is still read, so it keeps running and the debug counters
-    stay honest, but NOTHING is processed or sent; a running utterance is discarded."""
+    stay honest, but nothing NEW is processed or sent. Private is a FREEZE: the sentence that was being said is closed
+    normally and still finishes (words, translation); only what comes after it is ignored."""
     chunk_sec = chunk / rate
     log.info("live capture '%s' started: %d Hz, %d ch, chunk %d frames", label, rate, channels, chunk)
     was_paused = False
@@ -40,8 +41,9 @@ def capture_live(label: str, stream: Any, rate: int, channels: int, chunk: int, 
         if stats:
             stats.chunk(label, rms)
         if paused is not None and paused():
-            if not was_paused and gate.flush():
-                live.feed(label, GateEvent("end", kept=False))  # discard what was being said when Private went on
+            if not was_paused:
+                for event in gate.flush():  # close the running sentence as a normal one (kept only if it was long enough)
+                    live.feed(label, event)
             was_paused = True
             continue
         was_paused = False

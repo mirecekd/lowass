@@ -219,7 +219,8 @@ def test_controls_buttons_private_and_commands():
     c.on_shortcut("p", "Summary")
     assert flow.calls == [("check",), ("shortcut", "Summary")]
     c.set_private(True)
-    assert flow.private.is_set() and ("caption_clear", "") in s.posts and any("PRIVATE" in t for t in s.kinds("status"))
+    assert flow.private.is_set() and any("PRIVATE" in t for t in s.kinds("status"))
+    assert ("caption_clear", "") not in s.posts  # a freeze: what is on the screen stays
     c.toggle_private()  # the hotkey: flips and tells the button
     assert not flow.private.is_set() and ("private", "0") in s.posts
     c.toggle_private()
@@ -281,7 +282,7 @@ def test_capture_live_streams_audio_events_then_ends_on_silence():
     assert kinds.count("audio") >= 4
 
 
-def test_capture_live_private_discards_the_running_utterance_and_sends_nothing():
+def test_capture_live_private_lets_the_running_utterance_finish_and_starts_nothing_new():
     state = {"n": 0}
 
     def paused():
@@ -289,7 +290,8 @@ def test_capture_live_private_discards_the_running_utterance_and_sends_nothing()
         return state["n"] > 3  # Private goes on while the person is speaking
 
     events = run_capture([0.3] * 8, paused)
-    assert ("Ja", "end", False) in events  # the open stream is closed and its text discarded
+    assert ("Ja", "end", True) in events  # the sentence is closed normally and kept: it still finishes
+    assert ("Ja", "end", False) not in events
     assert [k for _s, k, _kept in events].count("start") == 1  # nothing new starts while Private is on
 
 
