@@ -210,3 +210,30 @@ def test_a_new_sheet_and_a_reset_are_posted_to_the_facts_window() -> None:
     assert ("facts", "NUMBERS\n- budget 100") in posts
     assist.reset()
     assert ("facts_reset", "") in posts
+
+
+def test_a_question_asked_while_an_automatic_check_runs_waits_instead_of_being_dropped(tmp_path: Any) -> None:
+    """Field bug: 'Jarvis, ...' said 1.2 s after an automatic check started was answered with 'Still working' and lost."""
+    import time
+
+    flow, agent, posts, _turns = real_flow("The answer.", tmp_path)
+    flow.busy.acquire()  # the automatic check is running
+    worker = threading.Thread(target=flow.work, args=("what do you think?", "what do you think?", "bot"), daemon=True)
+    worker.start()
+    time.sleep(0.3)
+    assert not [p for p in posts if p[0] == "err"], "the question must not be rejected"
+    assert any(p[0] == "status" and "waiting" in p[1] for p in posts)  # the user sees that it waits
+    flow.busy.release()  # the automatic check is done
+    worker.join(3)
+    assert ("you", "what do you think?") in posts and ("bot", "The answer.") in posts and agent.context is not None
+
+
+def test_a_question_that_waits_too_long_says_so_and_automatic_work_never_waits(tmp_path: Any) -> None:
+    flow, _agent, posts, _turns = real_flow("x", tmp_path)
+    flow.cfg.section = lambda n: {"agent": {"auto": False, "queue_wait_sec": 0.2}, "debug": {}}.get(n, {})  # type: ignore[method-assign]
+    flow.busy.acquire()
+    flow.work("q", "q", "bot")
+    assert [p for p in posts if p[0] == "err" and "Still working" in p[1]]
+    posts.clear()
+    flow.work("auto", None, "auto")  # an automatic check just skips: nobody is waiting for it
+    assert posts == []

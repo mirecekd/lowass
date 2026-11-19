@@ -17,8 +17,9 @@ from .freeze import make_gate
 from .meeting import Closed, Meeting, meeting_text
 from .screen import grab_primary
 from .session import Session
-from .summary import build_prompt, summarise, worth_summarising
+from .summary import build_prompt
 from .transcript import Transcript
+from .wrapup import finish_meeting
 
 log = logging.getLogger("lowass.flow")
 Post = Callable[[str, str], None]
@@ -41,6 +42,20 @@ class Flow:
         if self.dbg.get("enabled") and self.dbg.get("show_transcript"):
             self.post("heard", text)
 
+    def _take_the_agent(self, tag: str) -> bool:
+        """The agent runs one request at a time. An automatic check or a hint just skips when it is busy (nobody waits for
+        it), but a question YOU asked waits its turn (`[agent].queue_wait_sec`): the field log showed 'Jarvis, ...' lost
+        because an automatic check had started a second earlier."""
+        if self.busy.acquire(blocking=False):
+            return True
+        if tag in QUIET:
+            return False
+        self.post("status", "waiting for the previous request...")
+        if self.busy.acquire(timeout=float(self.cfg.section("agent").get("queue_wait_sec", 60))):
+            return True
+        self.post("err", "Still working on the previous request.")
+        return False
+
     def work(self, prompt: str, shown: str | None, tag: str, remember: bool = True, image: bytes | None = None,
              deliver: Callable[[str], None] | None = None) -> None:
         """One agent request. tag: bot (chat, fact-check, screenshot) | auto | hint. Private mode silences `auto` and
@@ -48,9 +63,7 @@ class Flow:
         instead of the log (the hint card)."""
         if tag in QUIET and self.private.is_set():
             return
-        if not self.busy.acquire(blocking=False):
-            if tag not in QUIET:
-                self.post("err", "Still working on the previous request.")
+        if not self._take_the_agent(tag):
             return
         try:
             agent = self.session.agent
@@ -139,21 +152,4 @@ class Flow:
 
     def finish(self, closed: Closed, agent, show: bool = True) -> None:
         """Summary of a closed meeting (shown in the window), then the slow store/embedding part."""
-        summary = ""
-        try:
-            if (self.cfg.section("memory").get("summary_on_end", True) and agent is not None
-                    and worth_summarising(closed.lines)):
-                self.post("status", "summarising the meeting...")
-                name = self.cfg.projects().get(closed.project, {}).get("name", closed.project)
-                summary = summarise(agent, self.cfg.section("prompts")["summary"], name, meeting_text(closed.path))
-                if summary and show:
-                    self.post("bot", f"[summary {closed.sid}]\n{summary}")
-        except Exception:
-            log.exception("summary failed")
-            self.post("err", "Summary failed (see the log). The transcript and chat are saved.")
-        try:
-            self.meeting.finish(closed, summary)
-        except Exception:
-            log.exception("storing the meeting failed")
-            self.post("err", "Storing the meeting in the memory failed (see the log). The files are saved.")
-        self.post("status", self.idle_status())
+        finish_meeting(self.cfg, self.post, self.meeting, self.idle_status, closed, agent, show)

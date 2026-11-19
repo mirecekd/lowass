@@ -126,6 +126,7 @@ history_messages = 12         # chat memory (user/assistant messages)
 max_steps = 8                 # tool-call rounds per request; kept low on purpose (speed matters more than depth)
 max_tool_chars = 12000        # tool result truncation
 llm_timeout_sec = 120
+queue_wait_sec = 60           # a question YOU ask waits this long for the agent when an automatic check is running (a check or a hint just skips)
 mcp_timeout_sec = 180
 
 [guard]
