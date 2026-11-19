@@ -72,10 +72,14 @@ class Assist:
         if pending is None or self.watcher is None:
             return
         waited = int(time.monotonic() - pending.asked_at)
+        shown: list[str] = []
 
         def deliver(answer: str) -> None:
+            shown.append(answer)
             self.post("hint", f"{pending.speaker}\t{waited}\t{answer}")
 
+        log.info("hint: asking the agent about an unanswered question from %s (%d s): %s", pending.speaker, waited, pending.text[:100])
         self.flow.work(hint_prompt(self.prompts["hint"], pending.speaker, pending.text), None, "hint", remember=False,
                        deliver=deliver)
+        log.info("hint: %s", "card shown" if shown else "no card (the agent said NOTHING, Private was on, or the request failed)")
         self.watcher.handled()

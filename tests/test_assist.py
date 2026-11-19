@@ -188,3 +188,14 @@ def test_flow_nothing_reply_gives_no_card(tmp_path: Any) -> None:
     got: list[str] = []
     flow.work("HINT", None, "hint", deliver=got.append)
     assert got == []
+
+
+def test_hint_command_posts_a_test_card_without_the_agent() -> None:
+    from types import SimpleNamespace
+
+    from lowass.controls import Controls
+
+    posts: list[tuple[str, str]] = []
+    flow = SimpleNamespace(ask=lambda t: posts.append(("ask", t)))
+    Controls(SimpleNamespace(shortcuts=list), lambda k, t: posts.append((k, t)), flow, None).ask_or_command("/hint")
+    assert posts and posts[0][0] == "hint" and posts[0][1].count("\t") == 2 and not [p for p in posts if p[0] == "ask"]

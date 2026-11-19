@@ -62,6 +62,7 @@ class Voice:
         out = self.translator.translate(text, lang) if lang else None
         if out and self.translate_on and not self.paused():  # switched off while the request ran: show nothing
             self.post("caption_tr", f"{speaker}\t{out}")
+            self.post("tr", f"{speaker}: {out}")  # also into the scrolling log: the caption panel only holds a few lines
 
     def close(self) -> None:
         self._pool.shutdown(wait=False, cancel_futures=True)

@@ -41,7 +41,10 @@ class Controls:
         self.set_private(not self.flow.private.is_set(), sync_button=True)
 
     def ask_or_command(self, text: str) -> None:
-        """The chat box: `/login` signs in to AWS (device code), anything else goes to the agent."""
+        """The chat box: `/login` signs in to AWS (device code), `/hint` shows a test card, anything else goes to the agent."""
+        if text.strip().lower() == "/hint":
+            self.post("hint", "Test\t12\tThis is a test card. It must appear next to this window without taking the keyboard focus.")
+            return
         if text.strip().lower() == "/login":
             if not self.login.begin(force=True):
                 self.post("err", "An AWS sign-in is already waiting for you in the browser.")

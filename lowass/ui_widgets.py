@@ -23,8 +23,8 @@ from .verdict import color_lines
 
 STATS_COLORS = {"hot": "#b5f2a0", "ok": "#6a9955", "dim": "#7a7a7a", "err": "#f48771"}
 LOG_COLORS = {"you": "#9cdcfe", "bot": "#d4d4d4", "auto": "#dcdcaa", "err": "#f48771", "heard": "#808080",
-              "red": "#ff5c5c", "blue": "#4fc1ff"}
-LOG_PREFIX = {"you": "> ", "auto": "[auto] ", "err": "[!] ", "heard": "~ "}
+              "red": "#ff5c5c", "blue": "#4fc1ff", "tr": "#4fc1ff"}
+LOG_PREFIX = {"you": "> ", "auto": "[auto] ", "err": "[!] ", "heard": "~ ", "tr": "-> "}
 
 
 def append_log(log: tk.Text, tag: str, text: str, verdict_pat: Any, verdict_colors: dict[str, str]) -> None:
@@ -34,7 +34,7 @@ def append_log(log: tk.Text, tag: str, text: str, verdict_pat: Any, verdict_colo
     log.configure(state="normal")
     for i, (line, line_tag) in enumerate(lines):
         log.insert("end", (prefix if i == 0 else "") + line + "\n", line_tag)
-    log.insert("end", "\n")
+    log.insert("end", "\n") if tag != "tr" else None  # translations follow each other without gaps
     log.configure(state="disabled")
     log.see("end")
 

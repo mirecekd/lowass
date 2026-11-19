@@ -112,6 +112,7 @@ def test_foreign_speech_is_translated_czech_is_not():
     while not s.kinds("caption_tr") and time.time() < deadline:
         time.sleep(0.05)
     assert s.kinds("caption_tr") == ["Protistrana\tCZ[Der Server ist ausgefallen]"]
+    assert s.kinds("tr") == ["Protistrana: CZ[Der Server ist ausgefallen]"]  # also in the scrolling log, readable at normal speed
 
 
 class CountingTranslator(FakeTranslator):

@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
+
+log = logging.getLogger("lowass.hints")
 
 # Normalized (lowercase, no diacritics) openers of a request addressed to the user.
 REQUEST_OPENERS: tuple[str, ...] = (
@@ -90,6 +93,7 @@ class HintWatcher:
         if self._is_candidate(stripped):
             self._pending = Pending(speaker, stripped, self._clock())
             self._delivered = False
+            log.info("hint: a question for you is pending (%s): %s", speaker, stripped[:100])
 
     def due(self) -> Pending | None:
         """Return the question to ask about once, or None."""
