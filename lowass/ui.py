@@ -5,23 +5,22 @@ from __future__ import annotations
 import queue
 import tkinter as tk
 from collections.abc import Callable
-from tkinter import scrolledtext, ttk
+from tkinter import scrolledtext
 
 from . import __version__
+from .facts_window import FactsWindow
 from .popup import HintCard
 from .popup_logic import Rect
 from .transcript_window import TranscriptWindow
 from .ui_parts import BACKGROUND
 from .ui_poll import make_handlers
+from .ui_toolbar import build_toolbar
 from .ui_widgets import (
     LOG_COLORS,
     CaptionView,
     ShortcutBar,
     StatsPanel,
     append_log,
-    private_button,
-    project_box,
-    translate_button,
 )
 from .verdict import compile_verdicts
 
@@ -57,24 +56,14 @@ class FloatingWindow:
         x = cfg["x"] if cfg["x"] >= 0 else sw - cfg["width"] + cfg["x"]
         r.geometry(f"{cfg['width']}x{cfg['height']}+{x}+{cfg['y']}")
 
-        bar = tk.Frame(r, bg=BACKGROUND)
-        bar.pack(fill="x", padx=6, pady=(6, 0))
-        tk.Button(bar, text="Clear", command=self._clear_all, font=font).pack(side="left")
-        tk.Button(bar, text="Screen", command=self._screen, font=font).pack(side="left", padx=4)
-        self.private = private_button(bar, font, on_private)
-        self.translate = translate_button(bar, font, self._translate_toggled, translate_on)
-        self.auto_var = tk.BooleanVar(value=auto)
-        tk.Checkbutton(bar, text="auto", variable=self.auto_var, command=self._toggle, bg=BACKGROUND, fg="#d4d4d4",
-                       selectcolor=BACKGROUND, activebackground=BACKGROUND, font=font).pack(side="left")
-        self.model_var = tk.StringVar(value=model)
-        box = ttk.Combobox(bar, textvariable=self.model_var, values=models, state="readonly", font=font, width=10)
-        box.pack(side="left", fill="x", expand=True, padx=(4, 0))
-        box.bind("<<ComboboxSelected>>", lambda _e: on_model(self.model_var.get()))
-
-        # project: one dropdown (names shown, keys reported)
+        tb = build_toolbar(
+            r, font, auto=auto, models=models, model=model, projects=dict(projects or {}), project=project,
+            translate_on=translate_on, on_clear=self._clear_all, on_screen=self._screen, on_auto=on_toggle_auto,
+            on_model=on_model, on_private=on_private, on_translate=self._translate_toggled, on_facts=self._facts_toggled,
+            on_project=lambda name: on_project(self._key_of(name)))
+        self.private, self.translate, self.facts_btn = tb.private, tb.translate, tb.facts
+        self.auto_var, self.model_var, self.project_var = tb.auto_var, tb.model_var, tb.project_var
         self._project_keys = dict(projects or {})
-        self.project_var = tk.StringVar(value=self._project_keys.get(project, project))
-        project_box(r, self.project_var, self._project_keys, font, lambda name: on_project(self._key_of(name)))
 
         self.status = tk.Label(r, text="starting...", anchor="w", bg=BACKGROUND, fg="#8a8a8a", font=font)
         self.status.pack(fill="x", padx=6, pady=(4, 0))
@@ -97,9 +86,16 @@ class FloatingWindow:
                              on_inline=lambda t: self._append("auto", t))
         self._on_translate = on_translate
         self.transcript = TranscriptWindow(r, self._geometry, font)
+        self.facts = FactsWindow(r, self._geometry, font, self.transcript.is_open, self.facts_btn.set)
         if translate_on:
             self.show_transcript(True)
         r.after(100, self._poll)
+
+    def _facts_toggled(self, on: bool) -> None:
+        if on:
+            self.facts.open()
+        else:
+            self.facts.close()
 
     def _translate_toggled(self, on: bool) -> None:
         self.show_transcript(on)
@@ -135,9 +131,6 @@ class FloatingWindow:
         """The Screen button: hide the window, then the app grabs the screen and posts 'unhide'."""
         self.root.withdraw()
         self.root.after(300, self.on_screen)
-
-    def _toggle(self) -> None:
-        self.on_toggle_auto(self.auto_var.get())
 
     def _submit(self, _event=None) -> None:
         text = self.entry.get().strip()

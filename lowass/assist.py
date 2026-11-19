@@ -53,6 +53,7 @@ class Assist:
         if self.watcher is not None:
             self.watcher.reset()
         self.post("hint_clear", "")
+        self.post("facts_reset", "")
 
     def run(self) -> None:
         while not self.stop.wait(1.0):
@@ -66,6 +67,7 @@ class Assist:
     def _tick(self) -> None:
         if self.sheet is not None and self.sheet.due() and self.sheet.update():
             self.meeting.save_facts(self.sheet.text)
+            self.post("facts", self.sheet.text)  # the facts window shows it (and opens by itself the first time)
         if self.flow.busy.locked():  # the agent is working: the question stays pending and is asked about next second
             return
         pending = self.watcher.due() if self.watcher is not None else None

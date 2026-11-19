@@ -4,6 +4,7 @@ from __future__ import annotations
 
 PARTIAL_COLOR, FINAL_COLOR, TRANSLATION_COLOR = "#8a8a8a", "#e6e6e6", "#4fc1ff"
 PRIVATE_COLOR, BACKGROUND = "#c0392b", "#1e1e1e"
+FACTS_COLOR = "#b87333"  # copper, like the headings of the facts window
 
 
 def flow_rows(labels: list[str], width_px: int, char_px: int, pad_px: int = 2) -> list[list[int]]:

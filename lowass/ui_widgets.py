@@ -5,13 +5,13 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 from tkinter import font as tkfont
-from tkinter import ttk
 from typing import Any
 
 from .debug import parse_rows
 from .tooltip import attach
 from .ui_parts import (
     BACKGROUND,
+    FACTS_COLOR,
     FINAL_COLOR,
     PARTIAL_COLOR,
     PRIVATE_COLOR,
@@ -163,11 +163,6 @@ def translate_button(parent: tk.Misc, font: tuple[str, int], on_translate: Calla
     return ToggleButton(parent, "Translate", font, TRANSLATION_COLOR, on_translate, on)
 
 
-def project_box(parent: tk.Misc, var: tk.StringVar, keys: dict[str, str], font: tuple[str, int],
-                on_pick: Callable[[str], None]) -> None:
-    """The project dropdown: names are shown, `on_pick` gets the chosen NAME. Nothing is built without projects."""
-    if not keys:
-        return
-    box = ttk.Combobox(parent, textvariable=var, values=list(keys.values()), state="readonly", font=font)
-    box.pack(fill="x", padx=6, pady=(4, 0))
-    box.bind("<<ComboboxSelected>>", lambda _e: on_pick(var.get()))
+def facts_button(parent: tk.Misc, font: tuple[str, int], on_facts: Callable[[bool], None]) -> ToggleButton:
+    """Copper while the facts window is open; the window also opens by itself with the first sheet of a meeting."""
+    return ToggleButton(parent, "Facts", font, FACTS_COLOR, on_facts)

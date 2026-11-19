@@ -130,6 +130,7 @@ run.bat
 | Foreign speech (German) in Czech                  | `Translate` button in the toolbar (blue = on): a transcript window opens left of the hint card with the translation under each foreign sentence; off = only transcribed |
 | Screenshot of the Teams window (primary monitor)  | `Screen` or `Ctrl+Alt+S`                                                                                                  |
 | Raise the window and type                         | `Ctrl+Alt+L`                                                                                                              |
+| Numbers, dates and agreements of the meeting      | the facts window opens by itself when the model finds facts; `Facts` button (row two of the toolbar) opens and closes it  |
 | Suggested answer to a question put to you         | a card appears left of the window after about 12 s of your silence; click it or `Ctrl+Alt+C` copies it                    |
 | End the meeting and get a summary                 | `Clear` (or switch the project)                                                                                           |
 | Ask the assistant about the past                  | just ask in the box: it searches the earlier meetings itself                                                              |
@@ -162,6 +163,6 @@ Always look at `lowass.log` next to `lowass.toml`: devices, STT results, every e
 
 Audio capture and loopback, the window itself, the three hotkeys, the Screen button on your monitors, the `.bat` files, and the AWS profile on Windows have only been checked on Linux. Please report the first thing that does not match this page.
 
-New and not seen on a screen yet: the suggested-answer card. It must appear to the LEFT of the window, must NOT steal the keyboard focus from Teams (keep typing in Teams while it shows), must slide in and disappear after about 25 s, and a click or `Ctrl+Alt+C` must put its text on the clipboard. If it does not fit next to the window it shows as a line inside the window instead. Also check that a name said in a different form ("Miroslave", "Mirku") triggers it and that a surname that merely starts the same does not.
+New and not seen on a screen yet: the second toolbar row and the facts window. Then the suggested-answer card. It must appear to the LEFT of the window, must NOT steal the keyboard focus from Teams (keep typing in Teams while it shows), must slide in and disappear after about 25 s, and a click or `Ctrl+Alt+C` must put its text on the clipboard. If it does not fit next to the window it shows as a line inside the window instead. Also check that a name said in a different form ("Miroslave", "Mirku") triggers it and that a surname that merely starts the same does not.
 
 When everything works, switch the debug off: `lowass.toml` -> `[debug]` -> `enabled = false`.

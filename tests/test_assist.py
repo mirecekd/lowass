@@ -199,3 +199,14 @@ def test_hint_command_posts_a_test_card_without_the_agent() -> None:
     flow = SimpleNamespace(ask=lambda t: posts.append(("ask", t)))
     Controls(SimpleNamespace(shortcuts=list), lambda k, t: posts.append((k, t)), flow, None).ask_or_command("/hint")
     assert posts and posts[0][0] == "hint" and posts[0][1].count("\t") == 2 and not [p for p in posts if p[0] == "ask"]
+
+
+def test_a_new_sheet_and_a_reset_are_posted_to_the_facts_window() -> None:
+    assist, _flow, _meeting, posts = build(cfg=Cfg(hint={"enabled": False}))
+    assert assist.sheet is not None
+    assist.sheet._complete = lambda _s, _u: "NUMBERS\n- budget 100"
+    assist.tap("Protistrana", "rozpocet je sto tisic korun")
+    assist._tick()
+    assert ("facts", "NUMBERS\n- budget 100") in posts
+    assist.reset()
+    assert ("facts_reset", "") in posts

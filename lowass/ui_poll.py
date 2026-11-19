@@ -38,7 +38,12 @@ def make_handlers(win: Any) -> dict[str, Callable[[str], None]]:
         win.translate.set(text == "1")
         win.show_transcript(text == "1")
 
+    def facts_reset(_text: str) -> None:
+        win.facts.reset()
+
     return {
+        "facts": win.facts.show_sheet,
+        "facts_reset": facts_reset,
         "status": status,
         "stats": win.stats.show,
         "private": lambda t: win.private.set(t == "1"),      # from a hotkey: no on_private call
