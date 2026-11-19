@@ -149,9 +149,9 @@ write_deny_regex = '(?i)(?:^|[_\-])(create|update|delete|remove|add|edit|write|t
 [ui]
 title = "LOWASS"
 width = 460
-height = 760                  # the debug panel has 4-5 rows; 660 leaves room for the log and the chat box
+height = "full"               # "full" = the whole height of the monitor (top edge to the taskbar), `y` is then ignored; or a number of pixels
 x = -20                       # negative = from the right edge
-y = 60
+y = 60                        # only with a numeric height
 # On which monitor the window starts: "last" = the one with the highest number (Windows display settings), "primary",
 # or a number (2 = monitor 2). With one monitor everything is that monitor; a number that does not exist gives the highest.
 monitor = "last"

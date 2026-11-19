@@ -26,11 +26,29 @@ def moved(wanted: Rect, seen: Rect, tolerance: int = 40) -> bool:
     return abs(wanted.x - seen.x) > tolerance or abs(wanted.y - seen.y) > tolerance
 
 
-def start_rect(area: Rect, width: int, height: int, x: int, y: int) -> Rect:
-    """Where the main window starts. A negative x counts from the right edge of the area (so -20 = 20 px from it)."""
+def start_rect(area: Rect, width: int, height: int | str, x: int, y: int, chrome: int = 0) -> Rect:
+    """Where the main window starts. A negative x counts from the right edge of the area (so -20 = 20 px from it).
+    height 'full' = from the top edge of the work area down to the taskbar and `y` is ignored; a number is a height in
+    pixels, moved up or shrunk when it does not fit. `chrome` is what Windows adds around the client area (the title
+    bar and the borders): the size in a Tk geometry is the client size, so a window as high as the area would hang below
+    the taskbar by exactly this much."""
     w = min(width, area.w)
     left = area.x + (x if x >= 0 else area.w - w + x)
-    return fit(area, Rect(left, area.y + y, w, height))
+    if str(height).strip().lower() == "full":
+        return Rect(left, area.y, w, max(200, area.h - chrome))
+    return fit(area, Rect(left, area.y + y, w, int(height)))
+
+
+def frame_height(title_bar: int, border: int) -> int:
+    """What the window frame adds to the CLIENT height: the title bar on top plus the border at the bottom. Tk gives both
+    as offsets (`winfo_rooty - winfo_y` is the title bar, `winfo_rootx - winfo_x` the side border, the bottom border is
+    the same). Negative values from a failed measurement count as 0."""
+    return max(0, title_bar) + max(0, border)
+
+
+def full_client_height(area: Rect, frame: int) -> int:
+    """The client height for which the OUTER window is exactly as high as the work area (top edge to the taskbar)."""
+    return max(200, area.h - frame)
 
 
 def column_slots(main: Rect, area: Rect, width: int = COLUMN_W, gap: int = GAP) -> tuple[Rect, Rect]:

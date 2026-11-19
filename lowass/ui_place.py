@@ -5,12 +5,21 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .layout import column_slots, geometry_string, moved, start_rect
+from .layout import (
+    column_slots,
+    frame_height,
+    full_client_height,
+    geometry_string,
+    moved,
+    start_rect,
+)
 from .monitors import area_for, list_monitors, pick_monitor, tk_screen
 from .popup_logic import Rect
 
 log = logging.getLogger("lowass.place")
+CHROME_GUESS = 40  # the title bar plus the borders at 100 % scaling; fit_full_height replaces the guess with the real value
 _wanted: dict[int, Rect] = {}  # id of the Tk root -> where the main window was asked to be (for check_placed)
+_area: dict[int, Rect] = {}  # id of the Tk root -> the work area of the monitor it was placed on (for fit_full_height)
 
 
 def main_geometry(root: Any) -> Rect:
@@ -29,14 +38,30 @@ def start_geometry(root: Any, cfg: dict) -> str:
     Everything that decides the position is written to the log, so a window in the wrong place can be diagnosed."""
     monitors = list_monitors(tk_screen(root))
     chosen = pick_monitor(monitors, cfg.get("monitor", "last"))
-    r = start_rect(chosen.work, int(cfg["width"]), int(cfg["height"]), int(cfg["x"]), int(cfg["y"]))
+    r = start_rect(chosen.work, int(cfg["width"]), cfg["height"], int(cfg["x"]), int(cfg["y"]), chrome=CHROME_GUESS)
     _wanted[id(root)] = r
+    _area[id(root)] = chosen.work
     log.info("monitors: %s", "; ".join(f"#{m.number}{'*' if m.primary else ''} {m.work.w}x{m.work.h}{m.work.x:+d}{m.work.y:+d}"
                                        for m in monitors))
     log.info("tk screen %dx%d, tk scaling %.2f; [ui] monitor=%r -> #%d; wanted %s",
              root.winfo_screenwidth(), root.winfo_screenheight(), float(root.tk.call("tk", "scaling")),
              cfg.get("monitor", "last"), chosen.number, geometry_string(r))
     return geometry_string(r)
+
+
+def fit_full_height(root: Any, cfg: dict) -> None:
+    """`height = "full"` only: once the window is shown, measure what Windows really put around the client area (the title
+    bar, the borders) and make the OUTER window end exactly at the bottom of the work area. The first guess in
+    start_geometry is only good for the first frame, the real frame size depends on the display scaling."""
+    area = _area.get(id(root))
+    if area is None or str(cfg.get("height")).strip().lower() != "full":
+        return
+    root.update_idletasks()
+    frame = frame_height(root.winfo_rooty() - root.winfo_y(), root.winfo_rootx() - root.winfo_x())
+    height = full_client_height(area, frame)
+    log.info("full height: frame %d px (title bar %d + border %d), client height %d, work area %d", frame,
+             root.winfo_rooty() - root.winfo_y(), root.winfo_rootx() - root.winfo_x(), height, area.h)
+    root.geometry(geometry_string(Rect(root.winfo_x(), area.y, root.winfo_width(), height)))
 
 
 def check_placed(root: Any) -> None:

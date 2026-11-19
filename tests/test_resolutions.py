@@ -123,3 +123,26 @@ def test_a_window_that_is_where_it_was_asked_to_be_is_not_reported_but_a_far_one
     assert not moved(wanted, Rect(1362, 63, 560, 860))  # a few pixels of border and shadow
     assert moved(wanted, Rect(1360, 700, 560, 860))  # "oddly at the bottom"
     assert moved(wanted, Rect(-2500, 60, 560, 860))  # on the wrong monitor
+
+
+def test_height_full_fills_the_work_area_from_the_top_to_the_taskbar_on_every_arrangement():
+    from lowass.layout import frame_height, full_client_height
+
+    for name, monitors in ARRANGEMENTS.items():
+        area = pick_monitor(monitors, "last").work
+        r = start_rect(area, 560, "full", -20, 60)
+        assert r.y == area.y and r.h == area.h and r.x + r.w == area.x + area.w - 20, name  # y is ignored, 20 px from the right
+        frame = frame_height(31, 8)  # a typical 100 % Windows title bar and border
+        client = full_client_height(area, frame)
+        assert client + frame == area.h, name  # the OUTER window ends exactly at the taskbar, not below it
+
+
+def test_a_guessed_frame_keeps_the_first_frame_inside_the_area_and_a_failed_measurement_is_harmless():
+    from lowass.layout import frame_height, full_client_height
+
+    area = Rect(0, 0, 1920, 1152)
+    assert start_rect(area, 560, "full", -20, 60, chrome=40).h == 1112
+    assert frame_height(-5, -3) == 0 and frame_height(31, 8) == 39
+    assert full_client_height(Rect(0, 0, 800, 150), 39) == 200  # a tiny area never gives a negative or useless height
+    assert start_rect(area, 560, "FULL", -20, 60).h == 1152  # case does not matter
+    assert start_rect(area, 560, 860, -20, 60).h == 860 and start_rect(area, 560, "860", -20, 60).h == 860  # numbers as before

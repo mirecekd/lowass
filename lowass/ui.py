@@ -14,7 +14,14 @@ from .popup_logic import Rect
 from .transcript_window import TranscriptWindow
 from .ui_callbacks import Callbacks
 from .ui_parts import BACKGROUND
-from .ui_place import check_placed, main_geometry, side_slots, start_geometry, work_area
+from .ui_place import (
+    check_placed,
+    fit_full_height,
+    main_geometry,
+    side_slots,
+    start_geometry,
+    work_area,
+)
 from .ui_poll import make_handlers
 from .ui_toolbar import build_toolbar
 from .ui_widgets import (
@@ -52,8 +59,8 @@ class FloatingWindow:
         r.attributes("-topmost", True)
         r.attributes("-alpha", cfg["alpha"])
         r.configure(bg=BACKGROUND)
-        r.geometry(start_geometry(r, cfg))  # on [ui].monitor: by default the monitor with the highest number
-        r.after(600, lambda: check_placed(r))  # logs where Windows REALLY put it (a scaling problem shows up)
+        r.geometry(start_geometry(r, cfg))  # on [ui].monitor (default: the highest-numbered one)
+        r.after(600, lambda: (fit_full_height(r, cfg), check_placed(r)))  # fit the real frame (height full), log the place
 
         tb = build_toolbar(
             r, font, auto=auto, models=models, model=model, projects=dict(projects or {}), project=project,
