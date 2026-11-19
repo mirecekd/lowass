@@ -29,6 +29,8 @@ from botocore.exceptions import (
     UnauthorizedSSOTokenError,
 )
 
+from . import crt_patch
+
 log = logging.getLogger("lowass.transcribe")
 
 LANG_RE = re.compile(r"^[a-z]{2,3}-[A-Z]{2}$")
@@ -95,6 +97,7 @@ class Transcriber:
         self.region = cfg["region"]
         self.langs = check_languages(list(cfg["languages"]))
         self.timeout = float(cfg.get("timeout_sec", 30))
+        crt_patch.apply()  # harmless CANCELLED tracebacks of the library are silenced (see crt_patch.py)
         self._session = boto3.Session(profile_name=self.profile, region_name=self.region)
 
     def credentials(self) -> Any:

@@ -2,4 +2,4 @@
 """LOWASS - LOcal Windows ASSistant."""
 
 # YYYYMMDD.X = build day + counter of that day. scripts/release.py sets it from the git tags (never edit by hand).
-__version__ = "20261119.4"
+__version__ = "20261119.5"
