@@ -32,7 +32,7 @@ A floating always-on-top window for Windows that listens to your work conversati
 
 - Live captions, wake phrase, Private mode, Screen button, shortcut buttons (summary, actions, decisions, now).
 - Suggested-answer card, rolling facts sheet, meeting memory with a summary at the end and search over past meetings.
-- Czech, Slovak, German and English speech by default, more by configuration.
+- Czech, Slovak, English and German speech by default (in this order), more by configuration.
 
 ## 🛠️ Technology Stack
 

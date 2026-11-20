@@ -127,8 +127,10 @@ run.bat
 | Summary, actions, decisions of the meeting so far | the buttons above the chat box (editable in `lowass.toml`)                                                                |
 | Ask the assistant by voice                        | say `Tose Samo` / `Samo Seto` / `Samo Tose` + the question                                                                |
 | Freeze everything for a private moment            | `Private` button or `Ctrl+Alt+P` (red = nothing new is heard; what was running finishes)                                  |
-| Foreign speech (German) in Czech                  | `Translate` button in the toolbar (blue = on): a transcript window opens next to the main window with the translation under each foreign sentence; off = only transcribed |
+| Foreign speech in Czech                           | `Translate` button (blue = on): the transcript window opens next to the main window; its FROM and TO dropdowns say what is translated (default German into Czech, `en-US` to `cs-CZ` for English); off = only transcribed |
+| Short sentences in another language come out as nonsense | the dropdown next to the model: pick the language that is spoken (it moves to the front for the next sentence); back to `default` when the talk changes |
 | Screenshot of the Teams window (primary monitor)  | `Screen` or `Ctrl+Alt+S`                                                                                                  |
+| Where the window is                               | on the monitor with the HIGHEST number, as high as the monitor (`[ui].monitor`, `[ui].height = "full"` in `lowass.toml`)                                    |
 | Raise the window and type                         | `Ctrl+Alt+L`                                                                                                              |
 | Numbers, dates and agreements of the meeting      | the facts window opens by itself when the model finds facts; `Facts` button (row two of the toolbar) opens and closes it  |
 | Suggested answer to a question put to you         | a card appears left of the window after about 12 s of your silence; click it or `Ctrl+Alt+C` copies it                    |
@@ -163,6 +165,14 @@ Always look at `lowass.log` next to `lowass.toml`: devices, STT results, every e
 
 Audio capture and loopback, the window itself, the three hotkeys, the Screen button on your monitors, the `.bat` files, and the AWS profile on Windows have only been checked on Linux. Please report the first thing that does not match this page.
 
-New and not seen on a screen yet: the second toolbar row and the facts window. Then the suggested-answer card. It must appear to the LEFT of the window, must NOT steal the keyboard focus from Teams (keep typing in Teams while it shows), must slide in and disappear after about 25 s, and a click or `Ctrl+Alt+C` must put its text on the clipboard. If it does not fit next to the window it shows as a line inside the window instead. Also check that a name said in a different form ("Miroslave", "Mirku") triggers it and that a surname that merely starts the same does not.
+Already seen working on Windows: live captions, the suggested-answer card, the transcript window with translation (en to cs and de to cs), the facts window, the window on the second monitor.
+
+Not seen on a screen yet, please look at these first:
+
+1. The two toolbar rows at your width (the model and project boxes grow, the language box stays on the right).
+2. `height = "full"`: the window must end exactly at the taskbar. The log line `full height: frame ...` shows what was measured; send it if the window overlaps the taskbar or stops short.
+3. The yellow tooltip over a shortcut button, and a yellow line when the assistant gives its opinion (only when it starts a bullet with OPINION or NAZOR).
+4. The language dropdown with real speech: with German chosen, short German sentences should be recognised and translated; with the default order short German sentences may be taken for Czech (measured). The choice is not saved, after a restart it is `default` again.
+5. `Ctrl+Alt+C` copies the text of the card; `Ctrl+Alt+P` toggles Private.
 
 When everything works, switch the debug off: `lowass.toml` -> `[debug]` -> `enabled = false`.
