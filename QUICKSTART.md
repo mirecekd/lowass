@@ -172,7 +172,7 @@ Not seen on a screen yet, please look at these first:
 1. The two toolbar rows at your width (the model and project boxes grow, the language box stays on the right).
 2. `height = "full"`: the window must end exactly at the taskbar. The log line `full height: frame ...` shows what was measured; send it if the window overlaps the taskbar or stops short.
 3. The yellow tooltip over a shortcut button, and a yellow line when the assistant gives its opinion (only when it starts a bullet with OPINION or NAZOR).
-4. The language dropdown with real speech: with German chosen, short German sentences should be recognised and translated; with the default order short German sentences may be taken for Czech (measured). The choice is not saved, after a restart it is `default` again.
+4. The language dropdown with real speech: with German chosen, short German sentences should be recognised and translated; with the default order short German sentences may be taken for Czech (measured). Language and project always start on their default (nothing is saved between starts); only the model choice is remembered.
 5. `Ctrl+Alt+C` copies the text of the card; `Ctrl+Alt+P` toggles Private.
 
 When everything works, switch the debug off: `lowass.toml` -> `[debug]` -> `enabled = false`.

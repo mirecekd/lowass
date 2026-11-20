@@ -96,7 +96,6 @@ class App:
                 return
             changed = key != self.project
             self.project = key
-            self.cfg.save_state(project=key)
             if changed:
                 self.transcript.clear()
                 self.assist.reset()

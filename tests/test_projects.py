@@ -20,16 +20,28 @@ def test_projects_have_url_and_prompt():
                      "private": "Private", "testing": "Testing"} and selected == "general"
 
 
-def test_project_choice_is_saved_and_ignored_when_unknown(tmp_path, monkeypatch):
+def test_the_project_always_starts_on_the_default_but_the_model_is_remembered(tmp_path, monkeypatch):
+    """User decision: language and project start on `default` every time; only the model choice is saved."""
     monkeypatch.setattr(config, "ROOT", tmp_path)
-    CFG.save_state(project="customer_b")
-    assert CFG.project()[1] == "customer_b"
-    CFG.save_state(model="global.anthropic.claude-haiku-5-5")  # saving the model must keep the project
-    assert CFG.project()[1] == "customer_b" and CFG.models()[1] == "global.anthropic.claude-haiku-5-5"
-    CFG.save_state(project="gone")
-    assert CFG.project()[1] == "general"
+    CFG.save_state(project="customer_b")  # an old state file from before the decision
+    assert CFG.project()[1] == "general"  # ignored: [projects].default wins
+    CFG.save_state(model="global.anthropic.claude-sonnet-5-5")
+    assert CFG.models()[1] == "global.anthropic.claude-sonnet-5-5" and CFG.project()[1] == "general"
     (tmp_path / config.STATE_FILE).write_text("{broken", encoding="utf-8")
     assert CFG.project()[1] == "general" and CFG.models()[1] == CFG.section("models")["default"]
+
+
+def test_an_unknown_default_project_falls_back_to_the_first_one():
+    cfg = Config({"projects": {"default": "gone", "a": {"name": "A"}, "b": {"name": "B"}}})
+    assert cfg.project() == ({"a": "A", "b": "B"}, "a")
+
+
+def test_switching_the_project_in_the_app_does_not_write_a_state_file():
+    import inspect
+
+    from lowass.app import App
+
+    assert "save_state(project" not in inspect.getsource(App._switch)
 
 
 def test_system_prompt_is_common_part_plus_project_part():

@@ -63,15 +63,15 @@ class Config:
         return {k: v for k, v in self.section("projects").items() if isinstance(v, dict)}
 
     def project(self) -> tuple[dict[str, str], str]:
-        """({key: display name}, selected key). Selection = saved choice, else projects.default, else the first."""
+        """({key: display name}, selected key). ALWAYS the start project: `[projects].default`, else the first one. The window
+        starts on the default every time (the user's decision); a project picked in the dropdown lasts until the app closes."""
         projs = self.projects()
         if not projs:
             raise ConfigError("lowass.toml has no [projects.<key>] section")
         chosen = self.section("projects").get("default")
         if chosen not in projs:
             chosen = next(iter(projs))
-        saved = self._state().get("project")
-        return {k: v.get("name", k) for k, v in projs.items()}, saved if isinstance(saved, str) and saved in projs else str(chosen)
+        return {k: v.get("name", k) for k, v in projs.items()}, str(chosen)
 
     def system_prompt(self, project_key: str) -> str:
         """Common system prompt + the project's own part. Built once per session (keeps the prompt cache stable)."""
