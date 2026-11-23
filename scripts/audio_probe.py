@@ -2,10 +2,11 @@
 """Which audio stream of LOWASS makes the headset sound like in a tunnel? Opens ONLY what you ask for, keeps it open and
 lets you listen. Run it on Windows from the project folder, with music playing in the headphones:
 
-  python -m scripts.audio_probe --mic                      the microphone, opened exactly as LOWASS opens it
+  python -m scripts.audio_probe --list                     every input device with its number, API and rate
+  python -m scripts.audio_probe --mic                      the default WASAPI microphone, as LOWASS opens it
   python -m scripts.audio_probe --loopback                 the loopback of the headphones only
-  python -m scripts.audio_probe --both                     both, as LOWASS does
-  python -m scripts.audio_probe --mic --mic-channels 1     the microphone as ONE channel instead of its maximum
+  python -m scripts.audio_probe --device 8                 ANY input device by its number from --list
+  python -m scripts.audio_probe --device 8 --rate 16000    the same at another rate (when the device accepts it)
 
 Listen while it runs (default 20 s). The device format is printed before and after the streams are opened. Nothing is
 recorded or sent anywhere."""
@@ -18,17 +19,33 @@ import time
 
 def parse(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="audio_probe", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mic", action="store_true", help="open the microphone")
+    ap.add_argument("--list", action="store_true", help="list the input devices and exit")
+    ap.add_argument("--mic", action="store_true", help="open the default WASAPI microphone")
     ap.add_argument("--loopback", action="store_true", help="open the loopback of the default headphones")
     ap.add_argument("--both", action="store_true", help="open both (like LOWASS)")
-    ap.add_argument("--mic-channels", type=int, default=0, help="channels of the microphone stream (0 = the device maximum, like LOWASS)")
+    ap.add_argument("--device", type=int, default=-1, help="open this device number (from --list)")
+    ap.add_argument("--mic-channels", type=int, default=0, help="channels of the stream (0 = the device maximum, like LOWASS)")
+    ap.add_argument("--rate", type=int, default=0, help="sample rate of the stream (0 = the device default, like LOWASS)")
     ap.add_argument("--seconds", type=float, default=20.0, help="how long to keep the streams open")
     args = ap.parse_args(argv)
     if args.both:
         args.mic = args.loopback = True
-    if not (args.mic or args.loopback):
-        ap.error("say what to open: --mic, --loopback or --both")
+    if not (args.list or args.mic or args.loopback or args.device >= 0):
+        ap.error("say what to do: --list, --mic, --loopback, --both or --device N")
     return args
+
+
+def api_name(p, info) -> str:
+    return str(p.get_host_api_info_by_index(info["hostApi"]).get("name", "?"))
+
+
+def list_inputs(p) -> None:
+    from lowass.audio import describe_device
+
+    for i in range(p.get_device_count()):
+        info = p.get_device_info_by_index(i)
+        if int(info["maxInputChannels"]) > 0:
+            print(f"[{i:2}] {api_name(p, info):24} {describe_device(info)}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,14 +55,20 @@ def main(argv: list[str] | None = None) -> int:
     from lowass.audio import describe_device, find_wasapi_devices
 
     p = pyaudio.PyAudio()
+    if args.list:
+        list_inputs(p)
+        p.terminate()
+        return 0
     mic, loop = find_wasapi_devices(p, pyaudio)
     wanted = [(name, info) for name, info, on in (("mic", mic, args.mic), ("loopback", loop, args.loopback)) if on]
+    if args.device >= 0:
+        wanted.append((f"device {args.device}", p.get_device_info_by_index(args.device)))
     for name, info in wanted:
-        print(f"BEFORE {name}: {describe_device(info)}")
+        print(f"BEFORE {name} [{api_name(p, info)}]: {describe_device(info)}")
     streams = []
     for name, info in wanted:
-        channels = args.mic_channels if name == "mic" and args.mic_channels > 0 else max(1, int(info["maxInputChannels"]))
-        rate = int(info["defaultSampleRate"])
+        channels = args.mic_channels if name != "loopback" and args.mic_channels > 0 else max(1, int(info["maxInputChannels"]))
+        rate = args.rate or int(info["defaultSampleRate"])
         chunk = int(rate * 0.05)  # 50 ms, like LOWASS
         streams.append((name, chunk, p.open(format=pyaudio.paInt16, channels=channels, rate=rate, input=True,
                                             input_device_index=info["index"], frames_per_buffer=chunk)))

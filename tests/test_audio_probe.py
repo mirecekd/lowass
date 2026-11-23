@@ -22,3 +22,12 @@ def test_the_probe_opens_nothing_unless_asked_and_both_means_mic_and_loopback():
     assert parse(["--mic", "--mic-channels", "1"]).mic_channels == 1
     only = parse(["--loopback", "--seconds", "5"])
     assert only.loopback and not only.mic and only.seconds == 5.0
+
+
+def test_the_probe_can_list_devices_open_one_by_number_and_set_the_rate():
+    assert parse(["--list"]).list is True
+    a = parse(["--device", "8", "--rate", "16000"])
+    assert a.device == 8 and a.rate == 16000 and not a.mic and not a.loopback
+    assert parse(["--mic"]).device == -1 and parse(["--mic"]).rate == 0  # the defaults are what LOWASS uses
+    with pytest.raises(SystemExit):
+        parse(["--rate", "16000"])  # a rate alone opens nothing
