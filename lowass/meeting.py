@@ -44,7 +44,7 @@ class Meeting:
                  on_error: Callable[[str], None] | None = None, background: bool = True,
                  sink: Callable[[str, str, str, str, str], None] | None = None):
         self.dir, self.store = data_dir, store
-        # sink(kind, project, session, text, speaker): a copy of every sentence, turn, facts sheet and summary (agentmemory)
+        # sink(kind, project, session, text, speaker): a copy of what is stored (agentmemory)
         self.sink = sink
         self.chunk_words, self.chunk_seconds = chunk_words, chunk_seconds
         self.on_error, self.background = on_error, background
@@ -141,7 +141,7 @@ class Meeting:
         with self._lock:
             self._ensure()
             (self.path / "facts.md").write_text(text + "\n", encoding="utf-8")
-        self._emit("facts", text)
+        # not sent now (each update would be one more memory): finish() sends the last sheet
 
     def screen_path(self) -> Path:
         with self._lock:
@@ -169,3 +169,6 @@ class Meeting:
         self.store.end_session(closed.sid, summary)
         self._after_add()
         self._emit("summary", summary, closed=closed)
+        facts = closed.path / "facts.md"
+        if facts.exists():  # the FINAL sheet of the meeting, once
+            self._emit("facts", facts.read_text(encoding="utf-8").strip(), closed=closed)

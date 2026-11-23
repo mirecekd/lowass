@@ -17,7 +17,7 @@ def build_agent(cfg: Config, project_key: str, model_id: str, extra_tools: list 
     model = OpenAIModel(
         client_args={"base_url": cfg.env("LITELLM_BASE_URL"), "api_key": cfg.env("LITELLM_API_KEY"),
                      "timeout": a["llm_timeout_sec"]},
-        model_id=model_id, params={"max_tokens": a.get("max_tokens", 2000)})
+        model_id=model_id, params={"max_tokens": int(a.get("max_tokens", 64000))})
     mcp = MCPClient(url=proj["mcphub_url"], headers={"Authorization": f"Bearer {cfg.env('MCPHUB_TOKEN')}"},
                     startup_timeout=int(a["mcp_timeout_sec"]))
     try:

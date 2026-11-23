@@ -62,6 +62,28 @@ def test_runaway_model_is_stopped():
     assert len(log) == ag.max_steps
 
 
+def test_a_cut_off_answer_is_kept_not_thrown_away():
+    ag, _, _ = make([("cut", "SUMMARY: the first half of a long sum")])
+    out = ag.run("summarise", "", remember=False)
+    assert out.startswith("SUMMARY: the first half") and "output limit" in out
+    assert ag.ag.messages == []  # the cut turn does not stay in the history
+
+
+def test_a_cut_with_no_text_at_all_still_raises():
+    from strands.types.exceptions import MaxTokensReachedException
+
+    ag, _, _ = make([("cut", "")])
+    try:
+        ag.run("x", "", remember=False)
+    except MaxTokensReachedException:
+        return
+    raise AssertionError("an empty cut answer must not look like a success")
+
+
+def test_the_sample_raises_the_output_cap():
+    assert int(CFG.section("agent")["max_tokens"]) >= 32000
+
+
 def test_big_tool_result_is_truncated():
     ag, model, _ = make([("tool", "call_tool", {"toolName": "big-tool"}), ("text", "ok")], max_tool_chars=1000)
     ag.run("q", "")

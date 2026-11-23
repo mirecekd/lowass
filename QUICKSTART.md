@@ -183,7 +183,7 @@ When everything works, switch the debug off: `lowass.toml` -> `[debug]` -> `enab
 
 LOWASS can keep a copy of every meeting in your agentmemory server and let the assistant search it (tool `search_memory`). It is OFF by default.
 
-What goes where: the summary and the facts sheet become durable memories in the project named after you (`[agentmemory.projects]`, for example `acme = "ACME"`); the transcript and the chat are observations of a session in `lowass-<name>` (for example `lowass-ACME`). Nothing is sent in Private mode, and the projects `private` and `testing` are never sent.
+What goes where: the summary and the facts sheet become durable memories (the facts sheet once, when the meeting ends) in the project named after you (`[agentmemory.projects]`, for example `acme = "ACME"`); the transcript and the chat are observations of a session in `lowass-<name>` (for example `lowass-ACME`). Nothing is sent in Private mode, and the projects `private` and `testing` are never sent.
 
 1. Copy `~/.agentmemory/secret` from the server into `.env` as `AGENTMEMORY_SECRET=...`.
 2. In `lowass.toml` -> `[agentmemory]`: `enabled = true`, `host = "<the server>"`, `user` if the login name differs. LOWASS opens the SSH tunnel itself (`ssh -L`, OpenSSH client of Windows).

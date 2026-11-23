@@ -43,10 +43,11 @@ class ScriptedModel(Model):
                 {"messageStop": {"stopReason": "tool_use"}},
             ]
         else:
+            stop = "max_tokens" if turn[0] == "cut" else "end_turn"  # ("cut", text): the output limit hit mid-answer
             events += [
                 {"contentBlockDelta": {"delta": {"text": turn[1]}}},
                 {"contentBlockStop": {}},
-                {"messageStop": {"stopReason": "end_turn"}},
+                {"messageStop": {"stopReason": stop}},
             ]
         for ev in events:
             yield cast(StreamEvent, ev)

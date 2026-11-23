@@ -94,6 +94,17 @@ def test_a_meeting_sends_sentences_turns_facts_and_a_summary_through_the_sink(tm
     assert all(c[1] == "ACME" for c in client.calls if c[0] == "remember")  # the summary and the facts go to the user's project
 
 
+def test_facts_go_out_once_at_the_end_not_with_every_update(tmp_path):
+    seen = []
+    m = meeting(tmp_path, lambda kind, *a: seen.append(kind))
+    m.transcript_line("Protistrana", "nejaka veta")
+    for i in range(5):  # the facts window refreshes every ~30 s
+        m.save_facts(f"NUMBERS\n- verze {i}")
+    assert "facts" not in seen  # nothing sent while the meeting runs
+    m.finish(m.rotate(), "souhrn")
+    assert seen.count("facts") == 1  # the last sheet, once
+
+
 def test_nothing_is_sent_for_private_and_testing_projects(tmp_path):
     client = FakeClient()
     sync = MemorySync(client, wait=lambda s: None)

@@ -16,7 +16,7 @@ from typing import Any
 
 from strands import Agent as StrandsAgent
 from strands.hooks import AfterToolCallEvent, BeforeToolCallEvent
-from strands.types.exceptions import EventLoopException
+from strands.types.exceptions import EventLoopException, MaxTokensReachedException
 
 from .guard import check_call
 
@@ -39,6 +39,13 @@ def session_stamp() -> str:
 
 def _text_msg(role: str, text: str) -> dict:
     return {"role": role, "content": [{"text": text}]}
+
+
+def partial_text(messages: list) -> str:
+    """The text of the last assistant message (Strands stores the cut-off answer there when max_tokens is hit)."""
+    if not messages or messages[-1].get("role") != "assistant":
+        return ""
+    return "".join(b.get("text", "") for b in messages[-1].get("content", [])).strip()
 
 
 class Agent:
@@ -111,6 +118,12 @@ class Agent:
             content: Any = text if image is None else [{"text": text}, {"image": {"format": "png", "source": {"bytes": image}}}]
             try:
                 answer = str(self.ag(content)).strip()
+            except MaxTokensReachedException:
+                answer = partial_text(self.ag.messages)  # a cut-off answer is still worth more than none (the summary!)
+                if not answer:
+                    raise
+                log.warning("the answer hit max_tokens and was cut (%d chars kept)", len(answer))
+                answer += "\n[cut: output limit reached]"
             except EventLoopException:
                 if self._steps <= self.max_steps + 3:  # not our StepLimitError: a real failure
                     raise
