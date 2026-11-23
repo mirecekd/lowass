@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .session_id import new_session_id
 from .store import Store
 
 log = logging.getLogger("lowass.meeting")
@@ -28,24 +29,6 @@ class Closed:
     pending: str  # transcript lines not stored in the vector store yet
 
 
-_ID_LOCK = threading.Lock()
-_issued: set[str] = set()
-
-
-def new_session_id() -> str:
-    """Second + millisecond; if that id was already given out a counter is appended, so two meetings can never
-    share a folder (they would be merged into one)."""
-    now = time.time()
-    base = f"{time.strftime('%Y%m%d-%H%M%S', time.localtime(now))}{int(now * 1000) % 1000:03d}"
-    with _ID_LOCK:
-        sid, n = base, 0
-        while sid in _issued:
-            n += 1
-            sid = f"{base}-{n}"
-        _issued.add(sid)
-    return sid
-
-
 def meeting_text(path: Path) -> str:
     """Transcript + agent chat of a meeting, read from the local files (works even if embedding never worked)."""
     parts = []
@@ -58,8 +41,11 @@ def meeting_text(path: Path) -> str:
 
 class Meeting:
     def __init__(self, data_dir: Path, store: Store, project: str, chunk_words: int = 180, chunk_seconds: float = 90.0,
-                 on_error: Callable[[str], None] | None = None, background: bool = True):
+                 on_error: Callable[[str], None] | None = None, background: bool = True,
+                 sink: Callable[[str, str, str, str, str], None] | None = None):
         self.dir, self.store = data_dir, store
+        # sink(kind, project, session, text, speaker): a copy of every sentence, turn, facts sheet and summary (agentmemory)
+        self.sink = sink
         self.chunk_words, self.chunk_seconds = chunk_words, chunk_seconds
         self.on_error, self.background = on_error, background
         self._lock = threading.Lock()
@@ -99,9 +85,20 @@ class Meeting:
             self.on_error(f"Memory: embedding failed, the text is saved and will be embedded later ({err[:120]})")
         self._last_error = err
 
+    def _emit(self, kind: str, text: str, speaker: str = "", closed: Closed | None = None) -> None:
+        """A copy for `sink` (agentmemory). Never raises: the local files are the truth."""
+        if self.sink is None or not text.strip():
+            return
+        project, sid = (closed.project, closed.sid) if closed is not None else (self.project, self.sid)
+        try:
+            self.sink(kind, project, sid, text, speaker)
+        except Exception:
+            log.warning("the memory sink failed", exc_info=True)
+
     def transcript_line(self, speaker: str, text: str) -> None:
         stamp = time.strftime("%H:%M:%S")
         line = f"[{stamp}] {speaker}: {text}"
+        self._emit("sentence", text, speaker)
         with self._lock:
             self._append("transcript.md", line)
             self.lines += 1
@@ -137,12 +134,14 @@ class Meeting:
             sid, project, path = self.sid, self.project, str(image or self.path / "chat.md")
         self.store.add(sid, project, "screenshot" if image else "chat", label, path)
         self._after_add()
+        self._emit("turn", f"user: {user_text}\n{role}: {answer}" if user_text else f"{role}: {answer}", role)
 
     def save_facts(self, text: str) -> None:
         """The rolling facts sheet of this meeting (overwritten on every update)."""
         with self._lock:
             self._ensure()
             (self.path / "facts.md").write_text(text + "\n", encoding="utf-8")
+        self._emit("facts", text)
 
     def screen_path(self) -> Path:
         with self._lock:
@@ -169,3 +168,4 @@ class Meeting:
             self.store.add(closed.sid, closed.project, "summary", summary, str(closed.path / "summary.md"))
         self.store.end_session(closed.sid, summary)
         self._after_add()
+        self._emit("summary", summary, closed=closed)

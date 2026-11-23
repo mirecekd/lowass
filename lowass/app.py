@@ -6,6 +6,7 @@ import logging
 import threading
 
 from . import deps, hotkeys
+from .am_service import MemoryLink
 from .assist import Assist
 from .config import Config
 from .controls import Controls
@@ -36,12 +37,13 @@ class App:
         self.stats = Stats()
         self.dbg = cfg.section("debug")
         self.ui = build_window(cfg, self, bool(a["auto"]), models, self.model, projects, self.project)
-        self.meeting = open_meeting(cfg, self.project, lambda m: self.ui.post("err", m))
-        self.session.extra_tools = [make_search_tool(self.meeting.store, lambda: self.project)]
+        self.link = MemoryLink(cfg, lambda: self.project)  # agentmemory: a quiet no-op unless [agentmemory].enabled
+        self.meeting = open_meeting(cfg, self.project, lambda m: self.ui.post("err", m), sink=self.link.sink)
+        self.session.extra_tools = [make_search_tool(self.meeting.store, lambda: self.project), *self.link.tools()]
         self.flow = Flow(cfg, self.ui.post, self.session, self.transcript, self.meeting, self.stats, self.busy,
                          lambda: "listening" if self.listener else "idle")
         self.login = LoginManager(cfg.section("transcribe")["profile"], self.ui.post)
-        self.controls = Controls(cfg, self.ui.post, self.flow, self.login)
+        self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self.link.set_private)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
         self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask)
         self.lang = LanguageControl(self.voice, self.ui.post)
@@ -58,7 +60,11 @@ class App:
         self.flow.auto = value
 
     def _end_meeting(self, closed, agent, show: bool = True) -> None:
-        threading.Thread(target=self.flow.finish, args=(closed, agent, show), daemon=True, name="meeting-end").start()
+        def work() -> None:
+            self.flow.finish(closed, agent, show)  # the summary is stored (and copied to agentmemory) first
+            self.link.end_meeting(closed.sid, closed.project)
+
+        threading.Thread(target=work, daemon=True, name="meeting-end").start()
 
     def clear_context(self) -> None:
         """Clear button: the meeting ends (summary in the window) and the LLM starts from a clean conversation."""
@@ -110,6 +116,9 @@ class App:
         self.switch_project(self.project)  # first connection runs in the background; the window is usable at once
         threading.Thread(target=self.flow.auto_loop, daemon=True, name="auto").start()
         threading.Thread(target=self.assist.run, daemon=True, name="assist").start()
+        self.link.start()
+        if self.link.problem:
+            self.ui.post("err", self.link.problem)
         if self.dbg.get("enabled"):
             threading.Thread(target=self.stats.heartbeat, daemon=True, name="stats", args=(
                 self.ui.post, float(self.dbg.get("stats_interval_sec", 2)), self.stop,
@@ -146,5 +155,7 @@ class App:
                 self.listener.close()
             closed = self.meeting.rotate()  # last meeting: summary is written to summary.md (window is gone)
             self.flow.finish(closed, self.session.agent, show=False)
+            self.link.end_meeting(closed.sid, closed.project)
+            self.link.stop()  # one last flush, bounded; never hangs the exit
             self.session.close()
             self.meeting.store.close()

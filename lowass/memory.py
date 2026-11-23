@@ -20,7 +20,8 @@ def data_dir(cfg: Config) -> Path:
     return p if p.is_absolute() else ROOT / p
 
 
-def open_meeting(cfg: Config, project: str, on_error: Callable[[str], None] | None = None) -> Meeting:
+def open_meeting(cfg: Config, project: str, on_error: Callable[[str], None] | None = None,
+                 sink: Callable[[str, str, str, str, str], None] | None = None) -> Meeting:
     m, e = cfg.section("memory"), cfg.section("embeddings")
     embed = None
     if e.get("enabled") and cfg.env("LITELLM_API_KEY"):
@@ -29,7 +30,7 @@ def open_meeting(cfg: Config, project: str, on_error: Callable[[str], None] | No
     d = data_dir(cfg)
     store = Store(d / "memory.db", embed)
     threading.Thread(target=_backfill, args=(store,), daemon=True, name="embed-backfill").start()
-    return Meeting(d, store, project, int(m.get("chunk_words", 180)), float(m.get("chunk_seconds", 90)), on_error)
+    return Meeting(d, store, project, int(m.get("chunk_words", 180)), float(m.get("chunk_seconds", 90)), on_error, sink=sink)
 
 
 def _backfill(store: Store) -> None:

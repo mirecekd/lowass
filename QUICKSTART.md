@@ -174,5 +174,19 @@ Not seen on a screen yet, please look at these first:
 3. The yellow tooltip over a shortcut button, and a yellow line when the assistant gives its opinion (only when it starts a bullet with OPINION or NAZOR).
 4. The language dropdown with real speech: with German chosen, short German sentences should be recognised and translated; with the default order short German sentences may be taken for Czech (measured). Language and project always start on their default (nothing is saved between starts); only the model choice is remembered.
 5. `Ctrl+Alt+C` copies the text of the card; `Ctrl+Alt+P` toggles Private.
+6. agentmemory (optional, section 9): the tunnel and the copy of your meetings. Nothing of it was seen on Windows yet.
 
 When everything works, switch the debug off: `lowass.toml` -> `[debug]` -> `enabled = false`.
+
+## 9. agentmemory (optional)
+
+LOWASS can keep a copy of every meeting in your agentmemory server and let the assistant search it (tool `search_memory`). It is OFF by default.
+
+What goes where: the summary and the facts sheet become durable memories in the project named after you (`[agentmemory.projects]`, for example `acme = "ACME"`); the transcript and the chat are observations of a session in `lowass-<name>` (for example `lowass-ACME`). Nothing is sent in Private mode, and the projects `private` and `testing` are never sent.
+
+1. Copy `~/.agentmemory/secret` from the server into `.env` as `AGENTMEMORY_SECRET=...`.
+2. In `lowass.toml` -> `[agentmemory]`: `enabled = true`, `host = "<the server>"`, `user` if the login name differs. LOWASS opens the SSH tunnel itself (`ssh -L`, OpenSSH client of Windows).
+3. The key: leave `key_file` empty and load the key into the agent once (`ssh-add C:\path\to\key.pem`, the service `ssh-agent` must run), or put the path of the key into `key_file`. LOWASS never reads the key.
+4. Start LOWASS and look at the status line and `lowass.log` (`agentmemory`): `tunnel up`, then `sent` grows.
+
+If the tunnel does not come up, the meeting works as before and the events wait (up to `outbox_limit`, the oldest transcript lines are dropped first).

@@ -10,8 +10,9 @@ log = logging.getLogger("lowass.controls")
 
 
 class Controls:
-    def __init__(self, cfg: Any, post: Callable[[str, str], None], flow: Any, login: Any):
+    def __init__(self, cfg: Any, post: Callable[[str, str], None], flow: Any, login: Any, on_private: Callable[[bool], None] | None = None):
         self.post, self.flow, self.login = post, flow, login
+        self.on_private = on_private  # told when Private goes on or off (agentmemory must stop sending at once)
         self.shortcuts = {s["label"]: s for s in cfg.shortcuts()}
 
     def on_shortcut(self, prompt: str, label: str) -> None:
@@ -32,6 +33,8 @@ class Controls:
         else:
             self.flow.private.clear()
             self.post("status", self.flow.idle_status())
+        if self.on_private:
+            self.on_private(on)
         if sync_button:
             self.post("private", "1" if on else "0")
         log.warning("private mode %s", "ON" if on else "off")

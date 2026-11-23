@@ -233,6 +233,24 @@ max_age_sec = 90                      # an older question is dropped
 card_sec = 25                         # how long the card stays
 copy_hotkey = "ctrl+alt+c"            # copies the text of the visible card to the clipboard
 
+[agentmemory]
+# Sends the meetings (every sentence, the chat with the assistant, the facts sheet, the summary) to the user's agentmemory
+# server and lets the assistant search it (tool search_memory). The server listens on its own loopback only, so LOWASS opens an
+# SSH tunnel (ssh -L) to it. OFF by default: the transcript of the OTHER side is stored on that server.
+# Nothing is sent for the projects in `exclude`, and nothing at all while Private is on.
+enabled = false
+host = ""                             # the server to tunnel to, as `ssh <host>` knows it (a Host entry of ~/.ssh/config works)
+user = ""                             # empty = what ~/.ssh/config says
+key_file = ""                         # empty = the ssh-agent and ~/.ssh/config decide; LOWASS never reads the key itself
+local_port = 13111                    # the tunnel listens on 127.0.0.1:<local_port> of THIS machine
+remote_port = 3111                    # agentmemory's REST port on the server
+exclude = ["private", "testing"]      # LOWASS project keys that are never sent
+read = true                           # the assistant may search agentmemory (tool search_memory)
+outbox_limit = 2000                   # events kept while the server is unreachable; the oldest sentences go first
+# Which agentmemory project a LOWASS project belongs to. The summary and the facts go to that project, the transcript and the
+# chat go to `lowass-<name>`. A project that is not listed here uses its own key.
+[agentmemory.projects]
+
 [facts]
 # Running summary and facts sheet (budgets, names, dates, what was agreed). Updated in small steps from the NEW part of the
 # transcript only, so it costs the same at minute 5 and at minute 60. It is saved to facts.md in the meeting folder.
