@@ -27,6 +27,16 @@ def find_wasapi_devices(p: Any, pyaudio: Any) -> tuple[dict, dict]:
     return mic, spk
 
 
+def describe_device(info: dict) -> str:
+    """One log line about a device as Windows reports it: the name, the host API index, the default rate and the channels.
+    Used before and after the streams are opened, so a change of the format (the usual cause of a headset that sounds
+    like in a tunnel) is visible in lowass.log. Never raises: a missing key is shown as '?'."""
+    get = info.get
+    return (f"{get('name', '?')} | index={get('index', '?')} rate={get('defaultSampleRate', '?')} "
+            f"in={get('maxInputChannels', '?')} out={get('maxOutputChannels', '?')} "
+            f"loopback={get('isLoopbackDevice', '?')} latency_in={get('defaultLowInputLatency', '?')}")
+
+
 def open_input_stream(p: Any, pyaudio: Any, info: dict) -> tuple[Any, int, int, int]:
     rate = int(info["defaultSampleRate"])
     channels = max(1, int(info["maxInputChannels"]))

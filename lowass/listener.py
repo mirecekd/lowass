@@ -7,7 +7,13 @@ import queue
 import threading
 from collections.abc import Callable
 
-from .audio import Segmenter, capture_worker, find_wasapi_devices, open_input_stream
+from .audio import (
+    Segmenter,
+    capture_worker,
+    describe_device,
+    find_wasapi_devices,
+    open_input_stream,
+)
 from .audio_live import capture_live
 from .debug import save_wav
 from .gate import Gate
@@ -38,6 +44,8 @@ class Listener:
         self._p = p = pyaudio.PyAudio()
         mic, loop = find_wasapi_devices(p, pyaudio)
         log.info("me=%s other=%s", mic["name"], loop["name"])
+        log.info("BEFORE opening the streams: mic %s", describe_device(mic))
+        log.info("BEFORE opening the streams: loopback %s", describe_device(loop))
         if dbg.get("enabled"):
             for i in range(p.get_device_count()):  # full device list helps when the default is wrong
                 d = p.get_device_info_by_index(i)
@@ -64,7 +72,19 @@ class Listener:
                              args=(label, stream, rate, ch, chunk, seg, out_q, self.stop, self.stats)).start()
         if not use_live:
             self._start_stt()
+        self._log_formats_after(p, [mic, loop])
         return [mic["name"], loop["name"]]
+
+    def _log_formats_after(self, p, devices: list[dict]) -> None:
+        """The same devices once the streams are open. A different `rate` than in the BEFORE lines would mean that opening the
+        microphone changed the format of the headset (Windows then resamples everything else it plays)."""
+        try:
+            for info in devices:
+                now = p.get_device_info_by_index(info["index"])
+                changed = now.get("defaultSampleRate") != info.get("defaultSampleRate")
+                log.info("AFTER opening the streams: %s%s", describe_device(now), "  <- THE RATE CHANGED" if changed else "")
+        except Exception:  # a diagnostic must never stop the capture
+            log.warning("could not read the device formats after opening", exc_info=True)
 
     def _start_live(self) -> bool:
         """Live streaming (words appear while you speak) needs Amazon Transcribe and the Voice handler."""
