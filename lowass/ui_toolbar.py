@@ -1,6 +1,6 @@
 # lowass/ui_toolbar.py
 """The two toolbar rows of the floating window.
-Row 1: Clear, Screen, auto, model, language.   Row 2: Private, Translate, Facts, project."""
+Row 1: Close meeting, Screen, auto, model, language.   Row 2: Private, Translate, Facts, project."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -10,6 +10,7 @@ from tkinter import ttk
 from typing import Literal
 
 from .languages import DEFAULT
+from .tooltip import attach
 from .ui_parts import BACKGROUND
 from .ui_widgets import ToggleButton, facts_button, private_button, translate_button
 
@@ -46,7 +47,10 @@ def build_toolbar(root: tk.Misc, font: Font, *, auto: bool, models: list[str], m
     empty list (no projects, no languages)."""
     first = tk.Frame(root, bg=BACKGROUND)
     first.pack(fill="x", padx=6, pady=(6, 0))
-    tk.Button(first, text="Clear", command=on_clear, font=font).pack(side="left")
+    close = tk.Button(first, text="Close meeting", command=on_clear, font=font)
+    close.pack(side="left")
+    attach(close, "Ends this meeting: stops listening (Private), then the summary, the memory and agentmemory finish. "
+                  "The status line says when it is done. Press Private to listen again.")
     tk.Button(first, text="Screen", command=on_screen, font=font).pack(side="left", padx=4)
     auto_var = tk.BooleanVar(value=auto)
     tk.Checkbutton(first, text="auto", variable=auto_var, command=lambda: on_auto(auto_var.get()), bg=BACKGROUND, fg="#d4d4d4",

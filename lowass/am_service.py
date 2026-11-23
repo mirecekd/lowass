@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -88,6 +89,12 @@ class MemoryLink:
     def end_meeting(self, session: str, project: str) -> None:
         if self.sync is not None:
             self.sync.end_meeting(session, project)
+
+    def flush(self, timeout: float = 30.0) -> bool:
+        """Send what waits, at most `timeout` s. True = all went out (or agentmemory is off); never raises."""
+        if self.sync is None:
+            return True
+        return self.sync.flush(wait_on_failure=False, deadline=time.time() + timeout)
 
     def reset(self, session: str | None = None) -> None:
         if self.sync is not None:

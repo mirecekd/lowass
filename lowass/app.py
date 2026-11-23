@@ -73,17 +73,6 @@ class App:
 
         threading.Thread(target=work, daemon=True, name="meeting-end").start()
 
-    def clear_context(self) -> None:
-        """Clear button: the meeting ends (summary in the window) and the LLM starts from a clean conversation."""
-        agent = self.session.agent
-        closed = self.meeting.rotate(self.project)
-        if agent:
-            agent.clear()
-        self.transcript.clear()
-        self.assist.reset()
-        self.ui.post("status", "context cleared")
-        self._end_meeting(closed, agent)
-
     def _set_model(self, model: str) -> None:
         self.model = model
         if self.session.agent:

@@ -102,7 +102,7 @@ The first start creates `.venv` and installs the packages (a few minutes). Then 
 
 What to check:
 
-1. The window is always on top, narrow, with the buttons `Clear`, `Screen`, `Private`, `auto` and the model dropdown, a project dropdown below it, and the shortcut buttons (`Fact-check`, `Summary`, ...) above the chat box.
+1. The window is always on top, narrow, with the buttons `Close meeting`, `Screen`, `Private`, `auto` and the model dropdown, a project dropdown below it, and the shortcut buttons (`Fact-check`, `Summary`, ...) above the chat box.
 2. The status says `project: general` after a few seconds (the connection to mcphub works). If it says `not connected`, read the red text in the window and `lowass.log`.
 3. Type a question into the box, for example `Kolik je 2+2?`, press Enter. An answer appears.
 4. Try a lookup: `Najdi v Jire poslednich 3 ticketu prirazenych mne.`
@@ -135,7 +135,7 @@ run.bat
 | Raise the window and type                         | `Ctrl+Alt+L`                                                                                                              |
 | Numbers, dates and agreements of the meeting      | the facts window opens by itself when the model finds facts; `Facts` button (row two of the toolbar) opens and closes it  |
 | Suggested answer to a question put to you         | a card appears left of the window after about 12 s of your silence; click it or `Ctrl+Alt+C` copies it                    |
-| End the meeting and get a summary                 | `Clear` (or switch the project)                                                                                           |
+| End the meeting and get a summary                 | `Close meeting` (stops listening, then summary and memory finish; the status line confirms; press `Private` to listen again) or switch the project |
 | Ask the assistant about the past                  | just ask in the box: it searches the earlier meetings itself                                                              |
 | Look at an older meeting (read-only)              | type `/load` (list), `/load 3` or `/load <id>` (open), then use `Summary` or ask; `/unload` to leave. Nothing is written or sent |
 | Colours                                           | red = FALSE / NEPRAVDA, green = CONFIRMED / POTVRZENO, violet = INFO, yellow = the assistant's opinion, blue = translations |

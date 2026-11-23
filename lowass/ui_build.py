@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .closing import close_meeting
 from .ui import FloatingWindow
 from .ui_callbacks import Callbacks
 
@@ -14,7 +15,7 @@ def build_window(cfg: Any, app: Any, auto: bool, models: list[str], model: str, 
     window can be built before them."""
     tc, tr = cfg.section("transcribe"), cfg.section("translate")
     cb = Callbacks(
-        on_toggle_auto=app._set_auto, on_model=app._set_model, on_clear=app.clear_context, on_project=app.switch_project,
+        on_toggle_auto=app._set_auto, on_model=app._set_model, on_clear=lambda: close_meeting(app), on_project=app.switch_project,
         on_shortcut=lambda p, label: app.controls.on_shortcut(p, label), on_private=lambda on: app.controls.set_private(on),
         on_translate=app._translate, on_language=lambda c: app.lang.set_recognition(c),
         on_rule=lambda f, t: app.lang.set_translation(f, t))
