@@ -137,6 +137,7 @@ run.bat
 | Suggested answer to a question put to you         | a card appears left of the window after about 12 s of your silence; click it or `Ctrl+Alt+C` copies it                    |
 | End the meeting and get a summary                 | `Clear` (or switch the project)                                                                                           |
 | Ask the assistant about the past                  | just ask in the box: it searches the earlier meetings itself                                                              |
+| Look at an older meeting (read-only)              | type `/load` (list), `/load 3` or `/load <id>` (open), then use `Summary` or ask; `/unload` to leave. Nothing is written or sent |
 | Colours                                           | red = FALSE / NEPRAVDA, green = CONFIRMED / POTVRZENO, violet = INFO, yellow = the assistant's opinion, blue = translations |
 
 Meetings are stored in `C:\lowass\data\<project>\<session>\` (`transcript.md`, `chat.md`, `summary.md`, `facts.md`, `screens\`). The vector index is `data\memory.db`.

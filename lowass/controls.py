@@ -6,12 +6,15 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from .review import Review
+
 log = logging.getLogger("lowass.controls")
 
 
 class Controls:
     def __init__(self, cfg: Any, post: Callable[[str, str], None], flow: Any, login: Any, on_private: Callable[[bool], None] | None = None):
         self.post, self.flow, self.login = post, flow, login
+        self.review = Review(cfg, post, flow)  # /load: a read-only look at an older meeting
         self.on_private = on_private  # told when Private goes on or off (agentmemory must stop sending at once)
         self.shortcuts = {s["label"]: s for s in cfg.shortcuts()}
 
@@ -19,7 +22,12 @@ class Controls:
         """A button under the log. `action = "check"` is the fact-check of the recent conversation; any other
         button runs its own prompt over the WHOLE meeting so far."""
         if self.shortcuts.get(label, {}).get("action") == "check":
+            if self.review.active:
+                self.post("err", "Fact-check works on the running meeting. /unload first.")
+                return
             self.flow.check_now()
+        elif self.review.active:
+            self.review.run(prompt, label)  # a loaded old meeting: read-only, stored nowhere
         else:
             self.flow.shortcut(prompt, label)
 
@@ -51,5 +59,10 @@ class Controls:
         if text.strip().lower() == "/login":
             if not self.login.begin(force=True):
                 self.post("err", "An AWS sign-in is already waiting for you in the browser.")
+            return
+        if self.review.command(text):
+            return
+        if self.review.active:
+            self.review.run(text, text[:30])  # a question about the loaded meeting
             return
         self.flow.ask(text)
