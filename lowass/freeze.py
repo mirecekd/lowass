@@ -22,6 +22,11 @@ class PrivateGate(threading.Event):
             self._since = time.monotonic()
         super().set()
 
+    def start_muted(self) -> None:
+        """Private from the very start: nothing was running, so there is nothing to drain; muted at once."""
+        super().set()
+        self._since = float("-inf")
+
     def muted(self) -> bool:
         """True once Private is on AND the running work had `drain_sec` to finish. The transcript path asks this."""
         return self.is_set() and time.monotonic() - self._since >= self.drain_sec

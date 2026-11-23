@@ -40,6 +40,14 @@ def cfg(provider="transcribe", mode="live", drain=None):
     return SimpleNamespace(section=lambda name: sections.get(name, {}))
 
 
+def test_start_muted_is_private_and_muted_at_once_with_a_long_drain():
+    g = PrivateGate(drain_sec=10.0)
+    g.start_muted()
+    assert g.is_set() and g.muted()  # starting paused: nothing was running, so nothing is drained
+    g.clear()
+    assert not g.is_set() and not g.muted()  # Play: back to normal
+
+
 def test_make_gate_drains_only_in_live_mode():
     assert make_gate(cfg()).drain_sec == 10.0
     assert make_gate(cfg(drain=4)).drain_sec == 4.0

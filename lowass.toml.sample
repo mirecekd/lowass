@@ -220,6 +220,9 @@ timeout_sec = 60
 # already with the model finish and show up. After this many seconds the recognised text of that sentence is no longer
 # accepted either (everything is muted). Only used with transcribe mode = "live".
 drain_sec = 10
+# true = LOWASS starts PAUSED (Private on, red button) and listens only after you press Private / Ctrl+Alt+P (the "play"
+# button). The AWS sign-in also waits for that moment. false = it listens from the start.
+start_on = false
 
 [hint]
 # The assistant offers a suggested answer when the other side asked YOU something (a question, your name, "could you ...")

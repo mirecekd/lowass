@@ -125,6 +125,7 @@ run.bat
 | Pick the project (your own list)    | the dropdown; it starts a clean meeting                                                                                   |
 | Check what was said now                           | `Fact-check` button or `Ctrl+Alt+Space`                                                                                   |
 | Summary, actions, decisions of the meeting so far | the buttons above the chat box (editable in `lowass.toml`)                                                                |
+| Start paused, then start listening                | `[private].start_on = true` in `lowass.toml`: LOWASS starts with Private on (red, nothing heard, AWS sign-in waits); press `Private` (now the Play button) or `Ctrl+Alt+P` to start listening |
 | Ask the assistant by voice                        | say `Tose Samo` / `Samo Seto` / `Samo Tose` + the question                                                                |
 | Freeze everything for a private moment            | `Private` button or `Ctrl+Alt+P` (red = nothing new is heard; what was running finishes)                                  |
 | Foreign speech in Czech                           | `Translate` button (blue = on): the transcript window opens next to the main window; its FROM and TO dropdowns say what is translated (default German into Czech, `en-US` to `cs-CZ` for English); off = only transcribed |

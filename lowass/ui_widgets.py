@@ -154,8 +154,10 @@ class ToggleButton:
 
 
 def private_button(parent: tk.Misc, font: tuple[str, int], on_private: Callable[[bool], None]) -> ToggleButton:
-    """Red while on: nothing is captured or sent."""
-    return ToggleButton(parent, "Private", font, PRIVATE_COLOR, on_private)
+    """Red while on: nothing is captured or sent. It is also the Play/Pause button when `[private].start_on` is true."""
+    toggle = ToggleButton(parent, "Private", font, PRIVATE_COLOR, on_private)
+    attach(toggle.button, "Red = paused: nothing is listened to, transcribed, sent or stored. Click (or Ctrl+Alt+P) to switch.")
+    return toggle
 
 
 def translate_button(parent: tk.Misc, font: tuple[str, int], on_translate: Callable[[bool], None],

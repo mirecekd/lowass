@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import threading
 
-from . import deps, hotkeys
+from . import hotkeys
 from .am_service import MemoryLink
+from .app_audio import start_listening
 from .assist import Assist
 from .config import Config
 from .controls import Controls
@@ -43,13 +44,19 @@ class App:
         self.flow = Flow(cfg, self.ui.post, self.session, self.transcript, self.meeting, self.stats, self.busy,
                          lambda: "listening" if self.listener else "idle")
         self.login = LoginManager(cfg.section("transcribe")["profile"], self.ui.post)
-        self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self.link.set_private)
+        self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self._private_changed)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
         self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask)
         self.lang = LanguageControl(self.voice, self.ui.post)
         install_excepthook(self.ui.post)
         self.assist = Assist(cfg, self.flow, self.meeting, self.ui.post, lambda: self.model)
         self.voice.tap = self.assist.tap
+
+    def _private_changed(self, on: bool) -> None:
+        """Told by Controls: agentmemory stops/starts sending; leaving Private (Play) signs in to AWS when that is still needed."""
+        self.link.set_private(on)
+        if not on and self.cfg.section("stt").get("provider") == "transcribe":
+            self.login.begin()
 
     def _translate(self, on: bool) -> None:
         """The Translate button: translate foreign speech only while it is on."""
@@ -128,19 +135,7 @@ class App:
         if not self.use_audio:
             self.ui.post("status", "idle (no audio)")
             return
-        from .listener import Listener
-        if self.cfg.section("stt").get("provider") == "transcribe":
-            self.login.begin()  # no valid AWS login: the device-code page opens at once, not at the first sentence
-        self.listener = Listener(self.cfg, self.on_text, self.stats, lambda msg: self.ui.post("err", msg),
-                                 self.login.begin, self.voice, self.flow.private.is_set, self.lang.attach)
-        try:
-            names = self.listener.start()
-            self.ui.post("status", "listening")
-            self.ui.post("bot", f"Listening. me: {names[0]} | other: {names[1]}")
-        except Exception as exc:  # noqa: BLE001 - audio problems must be visible, chat still works
-            self.listener = None
-            self.ui.post("err", f"Audio failed: {deps.describe(exc)}. Chat still works.")
-            self.ui.post("status", "no audio")
+        start_listening(self)
 
     def run(self) -> None:
         self.start()
