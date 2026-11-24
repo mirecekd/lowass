@@ -1,0 +1,55 @@
+# scripts/ui_probe_uia.py
+"""Windows glue of scripts/ui_probe.py: reads UI Automation elements through pywinauto (imported lazily, Windows only)."""
+from __future__ import annotations
+
+from pathlib import Path
+
+from scripts.ui_probe_tree import WindowInfo, flags_text
+
+
+def desktop():
+    try:
+        from pywinauto import Desktop  # type: ignore[import-not-found]  # Windows only
+    except ImportError as exc:
+        raise SystemExit(f"pywinauto (Windows only) is not available: {exc}\nInstall it on Windows: pip install pywinauto") from exc
+    return Desktop(backend="uia")
+
+
+def top_windows() -> list[tuple[WindowInfo, object]]:
+    top = desktop()  # first: a missing pywinauto must give the install hint
+    from pywinauto.application import process_get_path  # type: ignore[import-not-found]  # Windows only
+
+    processes: dict[int, str] = {}
+    found = []
+    for wrapper in top.windows():
+        info = wrapper.element_info
+        pid = int(info.process_id or 0)
+        if pid not in processes:
+            try:
+                processes[pid] = Path(process_get_path(pid)).name
+            except Exception:  # noqa: BLE001 - a protected process has no readable path
+                processes[pid] = "?"
+        found.append((WindowInfo(int(info.handle or 0), info.name or "", info.class_name or "", pid, processes[pid]), info))
+    return found
+
+
+def read_element(info) -> dict:
+    """Properties of one UIA element; an element that vanished while walking reads as empty."""
+    try:
+        r = info.rectangle
+        rect = (r.left, r.top, r.right, r.bottom)
+        try:
+            focused = bool(info.element.CurrentHasKeyboardFocus)
+        except Exception:  # noqa: BLE001
+            focused = False
+        return {"control_type": info.control_type or "?", "name": info.name or "", "automation_id": info.automation_id or "",
+                "class_name": info.class_name or "", "rect": rect, "flags": flags_text(bool(info.enabled), focused)}
+    except Exception:  # noqa: BLE001
+        return {"control_type": "?", "name": "", "automation_id": "", "class_name": "", "rect": (0, 0, 0, 0), "flags": "gone"}
+
+
+def children_of(info) -> list:
+    try:
+        return list(info.children())
+    except Exception:  # noqa: BLE001
+        return []
