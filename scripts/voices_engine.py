@@ -36,7 +36,7 @@ def _fetch(url: str, target: Path) -> None:
         raise ValueError(f"only https downloads are allowed: {url}")
     print(f"downloading {url}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(url, target)  # noqa: S310 - https only, checked above
+    urllib.request.urlretrieve(url, target)  # https only, checked above
 
 
 def download(embedding: str) -> None:
