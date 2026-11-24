@@ -7,3 +7,6 @@ python-dotenv
 mss
 pillow
 pyaudiowpatch; sys_platform == "win32"
+pywinauto; sys_platform == "win32"
+sherpa-onnx
+soundfile

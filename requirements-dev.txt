@@ -1,6 +1,2 @@
 -r requirements.txt
 pytest
-# scripts/ui_probe.py (Windows only)
-pywinauto; sys_platform == "win32"
-# scripts/voices.py
-sherpa-onnx
