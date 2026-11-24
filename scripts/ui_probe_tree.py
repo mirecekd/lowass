@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-NAME_LIMIT = 80
+NAME_LIMIT = 300  # a call tile packs name, mute, video and speaking state into one long name
 
 
 @dataclass(frozen=True)
