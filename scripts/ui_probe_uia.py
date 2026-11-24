@@ -15,10 +15,26 @@ def desktop():
     return Desktop(backend="uia")
 
 
+def process_get_path(pid: int) -> str:
+    """Executable path of a process (kernel32, so it does not depend on the pywinauto version)."""
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # Windows only
+    handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        raise OSError(f"cannot open process {pid}")
+    try:
+        buf = ctypes.create_unicode_buffer(1024)
+        size = ctypes.c_uint(len(buf))
+        if not kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+            raise OSError(f"no image name for process {pid}")
+        return buf.value
+    finally:
+        kernel32.CloseHandle(handle)
+
+
 def top_windows() -> list[tuple[WindowInfo, object]]:
     top = desktop()  # first: a missing pywinauto must give the install hint
-    from pywinauto.application import process_get_path  # type: ignore[import-not-found]  # Windows only
-
     processes: dict[int, str] = {}
     found = []
     for wrapper in top.windows():
