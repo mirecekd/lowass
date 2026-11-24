@@ -48,7 +48,7 @@ def segment(control_type: str, index: int, automation_id: str) -> str:
 
 def format_node(node: Node, with_path: bool = False) -> str:
     """One line: indented by depth, or prefixed by the path (for --find)."""
-    props = (f"name='{one_line(node.name)}' id='{node.automation_id}' class='{node.class_name}' "
+    props = (f"name='{one_line(node.name)}' id='{node.automation_id}' class='{node.class_name[:40]}' "
              f"rect={','.join(map(str, node.rect))} [{node.flags}]")
     if with_path:
         return f"{node.path}  {node.control_type} {props}"
