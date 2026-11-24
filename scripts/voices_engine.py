@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import tarfile
-import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -34,9 +33,18 @@ def embedding_path(embedding: str) -> Path:
 def _fetch(url: str, target: Path) -> None:
     if not url.startswith("https://"):
         raise ValueError(f"only https downloads are allowed: {url}")
+    import requests  # a project dependency; unlike urllib it speaks only http(s)
+
     print(f"downloading {url}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(url, target)  # https only, checked above
+    try:
+        with requests.get(url, stream=True, timeout=60) as resp:
+            resp.raise_for_status()
+            with open(target, "wb") as out:
+                out.writelines(resp.iter_content(1 << 20))
+    except OSError as exc:  # requests.RequestException is an OSError too
+        target.unlink(missing_ok=True)  # a half-written model must not look downloaded
+        raise SystemExit(f"download of {url} failed: {exc}") from exc
 
 
 def download(embedding: str) -> None:

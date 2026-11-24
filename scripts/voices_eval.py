@@ -24,7 +24,11 @@ from scripts.voices_engine import (
 
 
 def load_truth(base: str) -> list[core.Segment]:
-    return [core.Segment(a, b, who) for a, b, who in json.loads(Path(base + ".truth.json").read_text(encoding="utf-8"))]
+    try:
+        rows = json.loads(Path(base + ".truth.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"cannot read {base}.truth.json: {exc}") from exc
+    return [core.Segment(a, b, who) for a, b, who in rows]
 
 
 def dominant(seg: core.Segment, truth: list[core.Segment]) -> str:

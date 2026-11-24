@@ -92,8 +92,8 @@ def find(nodes: list[Node], text: str) -> list[Node]:
     return [n for n in nodes if matches(n, text)]
 
 
-def diff(old: list[Node], new: list[Node]) -> list[str]:
-    """Changes between two snapshots, keyed by Node.path: '- removed', '+ added', '~ changed field'."""
+def diff(old: list[Node], new: list[Node], fields: tuple[str, ...] = ("name", "class_name", "rect", "flags")) -> list[str]:
+    """Changes between two snapshots, keyed by Node.path: '- removed', '+ added', '~ changed field' (only the given fields)."""
     before = {n.path: n for n in old}
     after = {n.path: n for n in new}
     lines = [f"- {format_node(n, with_path=True)}" for p, n in before.items() if p not in after]
@@ -102,7 +102,7 @@ def diff(old: list[Node], new: list[Node]) -> list[str]:
         if previous is None:
             lines.append(f"+ {format_node(node, with_path=True)}")
             continue
-        for field in ("name", "class_name", "rect", "flags"):
+        for field in fields:
             was, now = getattr(previous, field), getattr(node, field)
             if was != now:
                 lines.append(f"~ {path}  {field}: {one_line(str(was))!r} -> {one_line(str(now))!r}")

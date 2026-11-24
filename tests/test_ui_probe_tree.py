@@ -93,3 +93,10 @@ def test_the_probe_needs_an_action_and_a_window_except_for_the_window_list():
     a = parse(["--window", "Teams", "--dump"])
     assert a.depth == 12 and a.max_elements == 5000 and a.interval == 0.5 and not a.enable_accessibility
     assert parse(["--pid", "5", "--watch", "30", "--interval", "1"]).watch == 30.0
+
+
+def test_diff_compares_only_the_given_fields():
+    old = [node("w/t0", "Alice")]
+    moved = [Node("Text", "Alice", "", "Chrome_Widget", (9, 9, 9, 9), "w/t0", 0, "enabled")]
+    assert diff(old, moved) != []
+    assert diff(old, moved, ("name", "flags")) == []

@@ -15,6 +15,7 @@ Read-only: nothing is clicked or typed. Needs the call window open; captions on 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
@@ -23,6 +24,7 @@ from scripts.ui_probe_tree import Node, collect, diff, find, format_node, pick_w
 from scripts.ui_probe_uia import children_of, read_element, top_windows
 
 WARM_UP_SECONDS = 2.0
+MANY_CHANGES = 40
 SMALL_TREE = 30
 ACCESSIBILITY_NOTE = ("note: the tree is small. Chromium/WebView2 exposes its content only to an assistive tool: try "
                       "--enable-accessibility, Narrator running, or --force-renderer-accessibility on the app.")
@@ -39,7 +41,10 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--interval", type=float, default=0.5, help="seconds between snapshots for --watch")
     ap.add_argument("--depth", type=int, default=12, help="deepest level to read")
     ap.add_argument("--max-elements", type=int, default=5000, help="stop after this many elements (WebView2 trees are huge)")
-    ap.add_argument("--out", metavar="FILE", help="write the --dump text to this file too")
+    ap.add_argument("--out", metavar="FILE", help="write the --dump or --watch text to this UTF-8 file")
+    ap.add_argument("--fields", default="name,flags", help="--watch: which properties to compare (name,class_name,rect,flags)")
+    ap.add_argument("--ignore", default="call-duration|^\\[[^]]*\\] ~ .*Text\\[0\\]  name: '\\d\\d:\\d\\d'",
+                    help="--watch: regex of change lines to hide (default: the call clock); empty = hide nothing")
     ap.add_argument("--enable-accessibility", action="store_true", help="walk the tree once and wait first, to wake Chromium")
     args = ap.parse_args(argv)
     if not (args.list_windows or args.dump or args.find is not None or args.watch is not None):
@@ -87,16 +92,36 @@ def count_line(nodes: list[Node], truncated: bool, cap: int) -> str:
 
 
 def watch(root, args) -> None:
+    """Prints only changes of --fields (default name and flags: the rectangles move all the time), minus lines matching --ignore."""
     previous, _ = settled_snapshot(root, args)
-    print(f"watching {args.watch:.0f} s every {args.interval} s, baseline {len(previous)} elements; only changes follow")
+    fields = tuple(args.fields.split(","))
+    ignore = re.compile(args.ignore) if args.ignore else None
+    try:
+        log = open(args.out, "w", encoding="utf-8") if args.out else None  # noqa: SIM115 - closed in finally
+    except OSError as exc:
+        raise SystemExit(f"cannot write {args.out}: {exc}") from exc
+    print(f"watching {args.watch:.0f} s every {args.interval} s, baseline {len(previous)} elements; only changes follow (Ctrl+C ends)")
     end = time.monotonic() + args.watch
-    while time.monotonic() < end:
-        time.sleep(args.interval)
-        current, _ = snapshot(root, args)
-        stamp = time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03}"
-        for line in diff(previous, current):
-            print(f"[{stamp}] {line}")
-        previous = current
+    try:
+        while time.monotonic() < end:
+            time.sleep(args.interval)
+            current, _ = snapshot(root, args)
+            stamp = time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03}"
+            lines = [x for x in diff(previous, current, fields) if not (ignore and ignore.search(x))]
+            previous = current
+            if len(lines) > MANY_CHANGES:  # minimised / restored window: the whole tree is added or removed
+                lines = [f"{len(lines)} changes at once (window minimised, restored or the page changed): not listed"]
+            for line in lines:
+                text = f"[{stamp}] {line}"
+                print(text)
+                if log:
+                    log.write(text + "\n")
+                    log.flush()
+    except KeyboardInterrupt:
+        print("stopped")
+    finally:
+        if log:
+            log.close()
 
 
 def main(argv: list[str] | None = None) -> int:
