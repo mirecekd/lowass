@@ -2,7 +2,7 @@
 """SPIKE: can we see WHO IS SPEAKING in a Microsoft Teams gallery from the coloured border Teams draws around the active
 speaker's tile? Run it on Windows (pip install pywinauto mss numpy) while a meeting window is visible, gallery view:
 
-  python -m scripts.speaker_probe --pid 1234 [--seconds 60] [--fps 5] [--out data/speaker-YYYYmmdd-HHMMSS.jsonl] [--stats]
+  python -m scripts.speaker_probe [--pid 1234] [--seconds 60] [--fps 5] [--out data/speaker-YYYYmmdd-HHMMSS.jsonl] [--stats]
 
 UI Automation gives the screen rectangle of every participant tile, mss grabs the meeting window, and for each tile a ring of
 pixels just inside the edge is measured (mean colour, uniformity, saturation); a solid saturated uniform ring that stands out
@@ -36,7 +36,7 @@ MINIMISED_LEFT = -30000  # Windows parks a minimised window around -32000
 
 def parse(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="speaker_probe", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--pid", type=int, required=True, help="process id of the Teams window (see ui_probe --list-windows)")
+    ap.add_argument("--pid", type=int, help="process id of the Teams window (default: found by itself, ms-teams.exe)")
     ap.add_argument("--seconds", type=float, default=60.0, help="how long to watch (default 60)")
     ap.add_argument("--fps", type=float, default=5.0, help="screen grabs per second (default 5)")
     ap.add_argument("--out", metavar="FILE", help="JSONL file of speaking events (default data/speaker-YYYYmmdd-HHMMSS.jsonl)")

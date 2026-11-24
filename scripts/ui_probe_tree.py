@@ -113,3 +113,11 @@ def pick_windows(windows: list[WindowInfo], title_re: str | None = None, pid: in
     """Windows with a title matching the regex (case-insensitive) and/or the process id; untitled ones never match a regex."""
     pattern = re.compile(title_re, re.IGNORECASE) if title_re else None
     return [w for w in windows if (pattern is None or pattern.search(w.title)) and (pid is None or w.pid == pid)]
+
+
+TEAMS_PROCESSES = ("ms-teams.exe", "teams.exe")  # new Teams (WebView2) and classic Teams (Electron)
+
+
+def teams_pids(windows: list[WindowInfo]) -> list[int]:
+    """Process ids of the running Teams client, from its executable name (the title changes with every chat or call)."""
+    return sorted({w.pid for w in windows if w.process.lower() in TEAMS_PROCESSES})

@@ -2,13 +2,13 @@
 """Writes a JSONL timeline of who has the microphone muted / unmuted in a running Microsoft Teams meeting (new Teams,
 WebView2) by reading the participant tiles through UI Automation. Run it on Windows (pip install pywinauto):
 
-  python -m scripts.meeting_log --pid 1234 [--interval 0.5] [--out data/meeting-YYYYmmdd-HHMMSS.jsonl] [--print]
+  python -m scripts.meeting_log [--pid 1234] [--interval 0.5] [--out data/meeting-YYYYmmdd-HHMMSS.jsonl] [--print]
 
-One JSON object per line: {"t": epoch, "event": "start", "pid": N} first, then {"t": epoch, "name": "...", "muted": bool,
+One JSON object per line: {"t": epoch, "event": "start", "pid": N or null} first, then {"t": epoch, "name": "...", "muted": bool,
 "present": bool}: one line per participant at the start, afterwards only changes (mute flips, a participant appears or leaves
 the gallery; a participant who left keeps the last muted value). Keep the meeting window visible (a minimised window freezes
-the tree) and in gallery view (speaker / focus view hides tiles). Read-only; Ctrl+C ends. Find the pid with
-python -m scripts.ui_probe --list-windows."""
+the tree) and in gallery view (speaker / focus view hides tiles). Read-only; Ctrl+C ends. The Teams process (ms-teams.exe) is
+found by itself; --pid overrides it (python -m scripts.ui_probe --list-windows lists the pids)."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TextIO
 
 from scripts.meeting_log_core import diff_states, read_states
-from scripts.ui_probe_tree import Node, collect, pick_windows
+from scripts.ui_probe_tree import Node, collect, pick_windows, teams_pids
 from scripts.ui_probe_uia import children_of, read_element, top_windows
 
 WARM_UP_SECONDS = 2.0
@@ -28,7 +28,7 @@ MINIMISED_LEFT = -30000  # Windows parks a minimised window around -32000
 
 def parse(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="meeting_log", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--pid", type=int, required=True, help="process id of the Teams window (see ui_probe --list-windows)")
+    ap.add_argument("--pid", type=int, help="process id of the Teams window (default: found by itself, ms-teams.exe)")
     ap.add_argument("--interval", type=float, default=0.5, help="seconds between snapshots")
     ap.add_argument("--out", metavar="FILE", help="JSONL file (default data/meeting-YYYYmmdd-HHMMSS.jsonl)")
     ap.add_argument("--depth", type=int, default=40, help="deepest level to read")
@@ -42,16 +42,26 @@ def snapshot(root, args) -> list[Node]:
 
 
 def choose_window(args):
-    """The window of the process that shows the most participant tiles (a process may own several top-level windows)."""
+    """The window that shows the most participant tiles (a process may own several top-level windows). Without --pid every
+    window of the Teams client is tried, so a running call is found by itself."""
     windows = top_windows()
-    handles = {w.handle for w in pick_windows([w for w, _ in windows], pid=args.pid)}
+    if args.pid is None:
+        pids = teams_pids([w for w, _ in windows])
+        if not pids:
+            raise SystemExit("Teams is not running (no ms-teams.exe window); start it or give --pid")
+        handles = {w.handle for w, _ in windows if w.pid in pids}
+    else:
+        handles = {w.handle for w in pick_windows([w for w, _ in windows], pid=args.pid)}
     roots = [info for w, info in windows if w.handle in handles]
     if not roots:
         raise SystemExit(f"no window of process {args.pid}; see python -m scripts.ui_probe --list-windows")
     for root in roots:
         snapshot(root, args)  # wake Chromium accessibility, then give it time to build the tree
     time.sleep(WARM_UP_SECONDS)
-    return max(roots, key=lambda root: len(read_states(snapshot(root, args))))
+    best = max(roots, key=lambda root: len(read_states(snapshot(root, args))))
+    if not read_states(snapshot(best, args)):
+        raise SystemExit("no meeting window with participant tiles found: join the call, keep Teams visible (not minimised)")
+    return best
 
 
 def is_minimised(root) -> bool:

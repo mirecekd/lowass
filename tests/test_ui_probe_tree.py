@@ -12,6 +12,7 @@ from scripts.ui_probe_tree import (
     find,
     format_node,
     pick_windows,
+    teams_pids,
 )
 
 
@@ -101,3 +102,12 @@ def test_diff_compares_only_the_given_fields():
     moved = [Node("Text", "Alice", "", "Chrome_Widget", (9, 9, 9, 9), "w/t0", 0, "enabled")]
     assert diff(old, moved) != []
     assert diff(old, moved, ("name", "flags")) == []
+
+
+def test_teams_pids_finds_the_client_by_executable_name_not_by_title():
+    windows = [WindowInfo(1, "Chat | Microsoft Teams", "TeamsWebView", 10, "ms-teams.exe"),
+               WindowInfo(2, "Calendar | Microsoft Teams", "TeamsWebView", 10, "ms-teams.exe"),
+               WindowInfo(3, "Teams - Mozilla Firefox", "MozillaWindowClass", 20, "firefox.exe"),
+               WindowInfo(4, "Chat", "Chrome_WidgetWin_1", 30, "Teams.exe")]
+    assert teams_pids(windows) == [10, 30]
+    assert teams_pids([windows[2]]) == []
