@@ -4,6 +4,7 @@ import pytest
 
 from scripts.ui_probe import parse
 from scripts.ui_probe_tree import (
+    NAME_LIMIT,
     Node,
     WindowInfo,
     collect,
@@ -28,8 +29,8 @@ def fake_children(element: dict) -> list:
 
 
 def test_a_line_shows_the_properties_truncates_long_names_and_indents_by_depth():
-    line = format_node(node("Window[0]/Text[0]", "x" * 200, automation_id="cap", depth=2))
-    assert line.startswith("    Text name='" + "x" * 77 + "...'")
+    line = format_node(node("Window[0]/Text[0]", "x" * 400, automation_id="cap", depth=2))
+    assert line.startswith("    Text name='" + "x" * (NAME_LIMIT - 3) + "...'")
     assert "id='cap'" in line and "class='Chrome_Widget'" in line and "rect=1,2,30,40" in line and "[enabled]" in line
     with_path = format_node(node("Window[0]/Text[0]", "hi"), with_path=True)
     assert with_path.startswith("Window[0]/Text[0]  Text name='hi'")
