@@ -1,20 +1,16 @@
 # tests/test_speaker_probe_core.py
-"""Speaker border detection of scripts/speaker_probe_core.py on synthetic tiles (noise 'video', violet border), fake names only."""
+"""Speaker border detection of scripts/speaker_probe_core.py on synthetic tiles (noise 'video', blue-violet border), fake names only."""
 import numpy as np
 import pytest
 
-from scripts.speaker_probe_core import (
-    SpeakerTracker,
-    read_rects,
-    ring_pixels,
-    ring_stats,
-    score,
-)
+from scripts.speaker_probe_core import SpeakerTracker, read_rects
+from scripts.speaker_probe_ring import ring_pixels, ring_stats
 from scripts.ui_probe_tree import Node
 
 NAMES = ["Eva", "Anna", "Dora", "Boris", "Clara", "Filip"]  # tile 2 is Anna, tile 4 is Boris
 TILE = 200
-VIOLET = (120, 60, 220)
+DARK_THEME = (127, 133, 245)  # Teams brand colour #7F85F5
+LIGHT_THEME = (91, 95, 199)  # #5B5FC7
 FPS = 5
 
 
@@ -22,22 +18,22 @@ def rects() -> dict[str, tuple[int, int, int, int]]:
     return {name: ((i % 3) * TILE, (i // 3) * TILE, (i % 3) * TILE + TILE, (i // 3) * TILE + TILE) for i, name in enumerate(NAMES)}
 
 
-def canvas(rng, border=(), colourful=(), solid=()) -> np.ndarray:
-    """6 tiles of grey noise; `colourful` tiles have random-colour noise (saturated, not uniform), `solid` tiles are one
-    colour all over, `border` tiles get a 3 px violet border."""
+def canvas(rng, border=(), colourful=(), solid=(), colour=DARK_THEME) -> np.ndarray:
+    """6 tiles of grey noise; `colourful` tiles have random-colour noise (saturated, not border-coloured), `solid` tiles are one
+    colour all over, `border` tiles get a 3 px border of `colour`."""
     img = np.zeros((2 * TILE, 3 * TILE, 3), np.uint8)
     for name, (left, top, right, bottom) in rects().items():
         if name in colourful:
             img[top:bottom, left:right] = rng.integers(0, 256, (TILE, TILE, 3), dtype=np.uint8)
         elif name in solid:
-            img[top:bottom, left:right] = VIOLET
+            img[top:bottom, left:right] = colour
         else:
             img[top:bottom, left:right] = rng.integers(0, 256, (TILE, TILE, 1), dtype=np.uint8)
         if name in border:
-            img[top:bottom, left:right][:3] = VIOLET
-            img[top:bottom, left:right][-3:] = VIOLET
-            img[top:bottom, left:right][:, :3] = VIOLET
-            img[top:bottom, left:right][:, -3:] = VIOLET
+            img[top:bottom, left:right][:3] = colour
+            img[top:bottom, left:right][-3:] = colour
+            img[top:bottom, left:right][:, :3] = colour
+            img[top:bottom, left:right][:, -3:] = colour
     return img
 
 
@@ -63,15 +59,21 @@ def test_speaker_changes_from_anna_to_boris():
     assert run(plan) == [("Anna", True), ("Anna", False), ("Boris", True), ("Boris", False)]
 
 
+def test_light_theme_border_is_found():
+    plan = QUIET + [("Anna",)] * 20 + [()] * 10
+    assert run(plan, colour=LIGHT_THEME) == [("Anna", True), ("Anna", False)]
+
+
 def test_noise_tiles_never_speak():
     assert run([()] * 100) == []
 
 
-def test_naturally_saturated_but_not_uniform_edge_is_ignored():
+def test_naturally_saturated_but_not_border_coloured_edge_is_ignored():
     assert run([()] * 100, colourful=("Dora",)) == []
 
 
-@pytest.mark.parametrize("kwargs", [{"solid": ("Dora",)}, {"colourful": ("Dora",), "solid": ("Filip",)}])
+@pytest.mark.parametrize("kwargs", [{"solid": ("Dora",)}, {"colourful": ("Dora",), "solid": ("Filip",)},
+                                    {"solid": ("Dora",), "colour": LIGHT_THEME}])
 def test_tile_that_is_always_coloured_is_not_speaking(kwargs):
     assert run([()] * 100, **kwargs) == []
 
@@ -105,34 +107,6 @@ def test_tile_leaving_while_speaking_stops_it():
     stats = measure(canvas(rng, border=("Anna",)))
     del stats["Anna"]
     assert tracker.feed(7.0, stats) == [{"t": 7.0, "name": "Anna", "speaking": False}]
-
-
-def test_ring_of_a_border_is_saturated_and_uniform():
-    rgb, std, sat = ring_stats(ring_pixels(canvas(np.random.default_rng(3), border=("Anna",)), rects()["Anna"]))
-    assert rgb == VIOLET
-    assert std == 0.0
-    assert sat == pytest.approx(160 / 220)
-    assert score(std, sat) == pytest.approx(sat)
-
-
-def test_ring_of_noise_scores_zero():
-    _rgb, std, sat = ring_stats(ring_pixels(canvas(np.random.default_rng(4)), rects()["Dora"]))
-    assert score(std, sat) == 0.0
-
-
-def test_ring_skips_the_corners():
-    img = np.zeros((100, 100, 3), np.uint8)
-    img[:6, :6] = 255  # a corner square only
-    assert not ring_pixels(img, (0, 0, 100, 100), inset=1, edge_fraction=0.8).any()
-
-
-def test_rect_partly_or_fully_off_screen_does_not_raise():
-    img = canvas(np.random.default_rng(5))
-    partly = ring_pixels(img, (-50, -50, 150, 150))
-    assert 0 < len(partly) < len(ring_pixels(img, (0, 0, 200, 200)))
-    assert len(ring_pixels(img, (5000, 5000, 5200, 5200))) == 0
-    assert len(ring_pixels(img, (50, 50, 50, 50))) == 0
-    assert ring_stats(ring_pixels(img, (5000, 5000, 5200, 5200))) == ((0, 0, 0), 0.0, 0.0)
 
 
 def test_read_rects_takes_tile_menu_items_only():

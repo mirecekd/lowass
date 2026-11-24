@@ -5,10 +5,10 @@ speaker's tile? Run it on Windows (pip install pywinauto mss numpy) while a meet
   python -m scripts.speaker_probe [--pid 1234] [--seconds 60] [--fps 5] [--out data/speaker-YYYYmmdd-HHMMSS.jsonl] [--stats]
 
 UI Automation gives the screen rectangle of every participant tile, mss grabs the meeting window, and for each tile a ring of
-pixels just inside the edge is measured (mean colour, uniformity, saturation); a solid saturated uniform ring that stands out
-from the tile's own baseline and from the other tiles means 'speaking'. Only CHANGES are printed:
+pixels along the edge is measured (mean colour, spread, saturation and the fraction of Teams border-blue pixels); a ring whose
+fraction stands out from the tile's own baseline and from the other tiles means 'speaking'. Only CHANGES are printed:
 [hh:mm:ss.mmm] speaking: <name> / stopped: <name>. --out gets {"t": epoch, "name": str, "speaking": bool} per change.
---stats also writes EVERY frame per tile (next to --out, *.stats.jsonl) as {"t","name","rgb","std","sat","score"}: aggregate
+--stats also writes EVERY frame per tile (next to --out, *.stats.jsonl) as {"t","name","rgb","std","sat","frac","score"}: aggregate
 numbers only, so they can be sent back for analysis. Pixels or images are NEVER saved, printed or logged.
 Limits: a minimised window is not visible (warning); a tile partly off the window / screen gives a warning (a tile covered by
 another window cannot be detected and measures that window's pixels); speaker / focus view hides tiles. Read-only; Ctrl+C ends."""
@@ -22,13 +22,8 @@ import time
 from pathlib import Path
 from typing import TextIO
 
-from scripts.speaker_probe_core import (
-    SpeakerTracker,
-    read_rects,
-    ring_pixels,
-    ring_stats,
-    score,
-)
+from scripts.speaker_probe_core import SpeakerTracker, read_rects
+from scripts.speaker_probe_ring import ring_pixels, ring_stats
 
 RECT_REFRESH_SECONDS = 2.0
 MINIMISED_LEFT = -30000  # Windows parks a minimised window around -32000
@@ -121,10 +116,10 @@ def process_frame(sct, box, rects, tracker, log: TextIO, stats_log: TextIO | Non
             warned.add(name)
             print(f"warning: tile '{name}' is partly outside the visible window / screen; its ring is cut", file=sys.stderr)
         stats[name] = ring_stats(ring_pixels(img, rel))
-    for name, (rgb, std, sat) in stats.items():
-        if stats_log:
+    for name, (rgb, std, sat, frac) in stats.items():
+        if stats_log:  # the tile score is the border fraction
             stats_log.write(json.dumps({"t": now, "name": name, "rgb": list(rgb), "std": round(std, 2), "sat": round(sat, 3),
-                                        "score": round(score(std, sat), 3)}, ensure_ascii=False) + "\n")
+                                        "frac": round(frac, 3), "score": round(frac, 3)}, ensure_ascii=False) + "\n")
     for event in tracker.feed(now, stats):
         print(f"[{stamp(now)}] {'speaking' if event['speaking'] else 'stopped'}: {event['name']}")
         log.write(json.dumps(event, ensure_ascii=False) + "\n")
