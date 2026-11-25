@@ -17,7 +17,8 @@ OWN_PREFIXES = ("Video o mně, ", "Video of me, ")
 # The display name ends at the first of these; trust labels sit glued to the name, the rest follows after a comma.
 NAME_END_MARKERS = (", video je zapnuté", " Neověřeno", " Externí neznámé", ", Má kontrolu", ", ztlumený mikrofon",
                     ", K dispozici", ", Ztlumení zrušeno", ", Ztlumený", ", Přizpůsobit", ", Má místní", ", muted",
-                    ", unmuted", ", video on", ", video off", ", video je vypnuté", ", context menu")
+                    ", unmuted", ", video on", ", video off", ", video je vypnuté", ", context menu",
+                    ", Znovu se připojuje", ", Reconnecting")
 MUTED_TILE = re.compile(r"ztlumeny mikrofon|(?<![a-z])muted")
 OWN_MUTED_SEGMENT = "ztlumeny"  # own tile: a whole comma segment ("Ztlumení zrušeno" is the unmuted one)
 MIC_BUTTON_ID = "microphone-button"

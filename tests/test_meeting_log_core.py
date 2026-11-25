@@ -34,6 +34,7 @@ def node(control_type: str, name: str, automation_id: str = "") -> Node:
     ("Mary Jones, video on, context menu available.", Tile("Mary Jones", False)),
     ("Video of me, Jan Tester, Unmuted, context menu available.", Tile("Jan Tester", False, own=True)),
     (f"Jana   Nova, ZTLUMENY MIKROFON, {CTX}", Tile("Jana Nova", True)),
+    (f"Anna Novak, Znovu se připojuje video, {CTX}", Tile("Anna Novak", False)),
 ])
 def test_parse_tile(name, expected):
     assert parse_tile(name) == expected
