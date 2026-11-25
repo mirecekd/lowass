@@ -97,6 +97,30 @@ With `[speaker] enabled = true` in `lowass.toml`, a finished sentence of the OTH
 - Cannot do: tell apart people who share one tile (a meeting room), name speakers when the tiles are not shown (other layouts, minimised window), or place a name exactly when people talk over each other. The start of a sentence is estimated from its length, so the name can be wrong around speaker changes.
 - Tuning (`lead_seconds`, `min_overlap`, `fps`) is in `lowass.toml.sample`. If anything fails at start, LOWASS runs as before, without names.
 
+## Move a meeting to another project
+
+Close the meeting in LOWASS first (Close meeting) and exit the app, then run:
+
+```text
+python -m lowass.move_meeting
+```
+
+It lists the last 30 meetings, asks which one and which target project, prints exactly what it will change and asks
+`Apply? [y/N]`. Nothing is written before you answer `y`. It moves the folder `data/<project>/<id>`, updates `memory.db`
+(one transaction, rolled back when the rename fails) and re-sends the meeting to agentmemory under the new project.
+
+- `--dry-run` prints the plan and exits; `--yes` skips the question; `--sid ID` and `--to KEY` skip the menus; `--limit N`;
+  `--config NAME`.
+- agentmemory: the new summary, facts and transcript lines are sent first. The old summary/facts memories are searched by
+  their concept `lowass-meeting-<id>` and listed; the REST delete call is not verified, so delete them by hand
+  (MCP tool `memory_governance_delete`). The old transcript observations CANNOT be deleted through the API: they stay under
+  the old project `lowass-<name>`.
+- A project in `[agentmemory].exclude` is never sent: moving to it is local only (old memories are not removed); moving
+  from it to a normal project is a new upload.
+- If agentmemory fails the local move stays done and the tool says `agentmemory part INCOMPLETE`. Redo only that part with
+  `python -m lowass.move_meeting --resend --sid ID --to KEY` (KEY = the project the meeting is in now). Identical
+  observations are meant to be de-duplicated by the server (unverified).
+
 ## 🐞 Debug
 
 Debug is on by default while testing (`lowass.toml [debug]`): a stats line in the window (mic level vs. threshold, segments, Whisper results, agent calls), grey `~` lines with what Whisper heard, warnings for a dead microphone, and `lowass.log` next to the config (all audio devices, per-segment STT timing, thread crashes). `python -m lowass --debug` forces it on. Set `save_wav_dir = "debug-wav"` to save the audio sent to Whisper. Turn it off with `enabled = false` when everything works.
