@@ -10,6 +10,17 @@ min_speech_sec = 0.35
 my_label = "Ja"
 other_label = "Protistrana"
 
+[speaker]
+# Experimental: the sentences of the OTHER side get the name of the active Teams speaker (the lit tile border), e.g.
+# "Anna: ...". Your own sentences keep my_label; nothing lit -> the plain other_label. Off by default.
+# Needs the Teams new client in gallery view, visible and not minimised, plus pywinauto, mss and numpy.
+# WARNING: the LOWASS window sits at the right edge of the last monitor and can COVER Teams tiles; the detector would
+# then read LOWASS pixels. Keep Teams and LOWASS apart (e.g. Teams on another monitor).
+enabled = false
+lead_seconds = 0.3            # the border may light up this long before the audio of the sentence arrives
+min_overlap = 0.4             # seconds a name must be lit during the sentence to count (the longest lit name wins)
+fps = 5                       # how often the Teams window is looked at
+
 [debug]
 # Switch off (enabled = false) once everything works. Also: python -m lowass --debug
 enabled = true

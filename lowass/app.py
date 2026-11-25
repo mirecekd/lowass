@@ -8,6 +8,7 @@ import threading
 from . import hotkeys
 from .am_service import MemoryLink
 from .app_audio import start_listening
+from .app_speaker import start_speaker_names, stop_speaker_watch
 from .assist import Assist
 from .config import Config
 from .controls import Controls
@@ -46,7 +47,9 @@ class App:
         self.login = LoginManager(cfg.section("transcribe")["profile"], self.ui.post)
         self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self._private_changed)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
-        self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask)
+        names, self.name_watch = start_speaker_names(cfg)  # (None, None) unless [speaker].enabled
+        self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask,
+                                 names=names)
         self.lang = LanguageControl(self.voice, self.ui.post)
         install_excepthook(self.ui.post)
         self.assist = Assist(cfg, self.flow, self.meeting, self.ui.post, lambda: self.model)
@@ -135,6 +138,7 @@ class App:
             self.flow.stop.set()
             self.login.cancel()
             self.voice.close()
+            stop_speaker_watch(self.name_watch)
             if self.listener:
                 self.listener.close()
             closed = self.meeting.rotate()  # last meeting: summary is written to summary.md (window is gone)

@@ -87,6 +87,15 @@ Short version below; the step-by-step guide with checks and troubleshooting is i
 
 The assistant is read-only: tools whose names look like writes are blocked.
 
+### Speaker names (experimental)
+
+With `[speaker] enabled = true` in `lowass.toml`, a finished sentence of the OTHER side (`other_label`) is shown and stored as `Name: sentence`, where Name is the Teams participant whose tile border was lit while the sentence was said. If two borders lit up during one sentence, the one lit longest wins; if none was lit, the sentence keeps the plain `other_label`. Your own sentences always keep `my_label`, and live partial lines never get a name. The translation is made from the sentence without the name.
+
+- Needs: Teams new client in gallery view, its window visible and not minimised, and `pywinauto`, `mss` and `numpy` installed. Teams is found automatically.
+- Keep the LOWASS window away from the Teams tiles: it sits at the right edge of the last monitor and can cover them, then the detector reads LOWASS pixels instead.
+- Cannot do: tell apart people who share one tile (a meeting room), name speakers when the tiles are not shown (other layouts, minimised window), or place a name exactly when people talk over each other. The start of a sentence is estimated from its length, so the name can be wrong around speaker changes.
+- Tuning (`lead_seconds`, `min_overlap`, `fps`) is in `lowass.toml.sample`. If anything fails at start, LOWASS runs as before, without names.
+
 ## 🐞 Debug
 
 Debug is on by default while testing (`lowass.toml [debug]`): a stats line in the window (mic level vs. threshold, segments, Whisper results, agent calls), grey `~` lines with what Whisper heard, warnings for a dead microphone, and `lowass.log` next to the config (all audio devices, per-segment STT timing, thread crashes). `python -m lowass --debug` forces it on. Set `save_wav_dir = "debug-wav"` to save the audio sent to Whisper. Turn it off with `enabled = false` when everything works.
