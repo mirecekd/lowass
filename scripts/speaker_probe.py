@@ -22,10 +22,9 @@ import time
 from pathlib import Path
 from typing import TextIO
 
+from lowass.speaker_frame import RECT_REFRESH_SECONDS, grab_box, grab_rgb, measure_tiles
 from scripts.speaker_probe_core import SpeakerTracker, read_rects
-from scripts.speaker_probe_ring import ring_pixels, ring_stats
 
-RECT_REFRESH_SECONDS = 2.0
 MINIMISED_LEFT = -30000  # Windows parks a minimised window around -32000
 
 
@@ -51,23 +50,6 @@ def make_dpi_aware() -> None:
 
 def stamp(t: float) -> str:
     return time.strftime("%H:%M:%S", time.localtime(t)) + f".{int(t % 1 * 1000):03d}"
-
-
-def grab_box(sct, window: tuple[int, int, int, int]):
-    """Window rectangle clipped to the virtual desktop as an mss monitor dict (None when nothing of it is on screen)."""
-    desk = sct.monitors[0]
-    left, top = max(window[0], desk["left"]), max(window[1], desk["top"])
-    right, bottom = min(window[2], desk["left"] + desk["width"]), min(window[3], desk["top"] + desk["height"])
-    if right <= left or bottom <= top:
-        return None
-    return {"left": left, "top": top, "width": right - left, "height": bottom - top}
-
-
-def grab_rgb(sct, box):
-    import numpy as np
-
-    shot = sct.grab(box)
-    return np.frombuffer(shot.bgra, np.uint8).reshape(shot.height, shot.width, 4)[:, :, [2, 1, 0]]
 
 
 def run(root, args, log: TextIO, stats_log: TextIO | None) -> None:
@@ -109,13 +91,9 @@ def process_frame(sct, box, rects, tracker, log: TextIO, stats_log: TextIO | Non
     """Grab one frame, measure the ring of every tile, feed the tracker, print and write what changed."""
     img = grab_rgb(sct, box)
     now = time.time()
-    stats = {}
-    for name, (left, top, right, bottom) in rects.items():
-        rel = (left - box["left"], top - box["top"], right - box["left"], bottom - box["top"])
-        if (rel[0] < 0 or rel[1] < 0 or rel[2] > box["width"] or rel[3] > box["height"]) and name not in warned:
-            warned.add(name)
-            print(f"warning: tile '{name}' is partly outside the visible window / screen; its ring is cut", file=sys.stderr)
-        stats[name] = ring_stats(ring_pixels(img, rel))
+    stats, outside = measure_tiles(img, box, rects, warned)
+    for name in outside:
+        print(f"warning: tile '{name}' is partly outside the visible window / screen; its ring is cut", file=sys.stderr)
     for name, (rgb, std, sat, frac) in stats.items():
         if stats_log:  # the tile score is the border fraction
             stats_log.write(json.dumps({"t": now, "name": name, "rgb": list(rgb), "std": round(std, 2), "sat": round(sat, 3),
