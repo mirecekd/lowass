@@ -179,6 +179,9 @@ verdict_info = ["INFO"]
 verdict_opinion = ["OPINION", "NAZOR", "NÁZOR"]
 verdict_blue = []
 caption_lines = 4             # lines of the live captions (partial = grey, final = white, translation = blue)
+# true = at the start of every NEW meeting (the app starts, or you press Play after Close meeting) a window asks which project
+# is starting (one button per project); closing it without a choice keeps Private on. Only with 2 or more projects.
+ask_project = true
 
 # Buttons above the chat box. Each runs its prompt over the WHOLE meeting so far (not only the last minutes).
 # `action = "check"` is the fact-check of the recent conversation (the same as Ctrl+Alt+Space).

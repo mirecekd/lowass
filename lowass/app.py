@@ -7,7 +7,7 @@ import threading
 
 from . import hotkeys
 from .am_service import MemoryLink
-from .app_audio import start_listening
+from .app_audio import make_choice, start_listening
 from .app_speaker import start_speaker_names, stop_speaker_watch
 from .assist import Assist
 from .config import Config
@@ -45,7 +45,8 @@ class App:
         self.flow = Flow(cfg, self.ui.post, self.session, self.transcript, self.meeting, self.stats, self.busy,
                          lambda: "listening" if self.listener else "idle")
         self.login = LoginManager(cfg.section("transcribe")["profile"], self.ui.post)
-        self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self._private_changed)
+        self.choice = make_choice(self)  # which project a new meeting belongs to (asked when Private is left)
+        self.controls = Controls(cfg, self.ui.post, self.flow, self.login, self._private_changed, self.choice)
         self.ui.bind(self.controls.ask_or_command, self.flow.check_now, self.flow.screen)
         names, self.name_watch = start_speaker_names(cfg)  # (None, None) unless [speaker].enabled
         self.voice = build_voice(cfg, self.ui.post, self.transcript, self.meeting, self.flow.private.muted, self.flow.ask,

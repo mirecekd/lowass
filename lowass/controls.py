@@ -6,14 +6,17 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from .project_choice import CANCELLED
 from .review import Review
 
 log = logging.getLogger("lowass.controls")
 
 
 class Controls:
-    def __init__(self, cfg: Any, post: Callable[[str, str], None], flow: Any, login: Any, on_private: Callable[[bool], None] | None = None):
+    def __init__(self, cfg: Any, post: Callable[[str, str], None], flow: Any, login: Any, on_private: Callable[[bool], None] | None = None,
+                 choice: Any = None):
         self.post, self.flow, self.login = post, flow, login
+        self.choice = choice  # ProjectChoice: asks which project a NEW meeting belongs to before Private is left
         self.review = Review(cfg, post, flow)  # /load: a read-only look at an older meeting
         self.on_private = on_private  # told when Private goes on or off (agentmemory must stop sending at once)
         self.shortcuts = {s["label"]: s for s in cfg.shortcuts()}
@@ -31,10 +34,15 @@ class Controls:
         else:
             self.flow.shortcut(prompt, label)
 
-    def set_private(self, on: bool, sync_button: bool = False) -> None:
+    def set_private(self, on: bool, sync_button: bool = False, ask: bool = True) -> None:
         """Private is a FREEZE: nothing new is listened to, sent or stored and the assistant makes no automatic comments,
         but what is already running finishes and stays on screen (captions are NOT cleared). A question you type or a
-        button you press still works (your own act)."""
+        button you press still works (your own act). Leaving Private at the start of a NEW meeting first asks for the
+        project (`ask`): Private stays on until a project button is pressed."""
+        if not on and ask and self.flow.private.is_set() and self.choice and self.choice.ask_if_wanted():
+            self.post("private", "1")  # the button was already released by the click
+            self.post("status", CANCELLED)
+            return
         if on:
             self.flow.private.set()
             self.post("status", "PRIVATE: frozen (finishing what was running)")

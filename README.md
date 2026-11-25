@@ -83,6 +83,7 @@ Short version below; the step-by-step guide with checks and troubleshooting is i
 
 - `.env`: secrets (LiteLLM, mcphub token, optional Groq key). AWS access is a profile name in `lowass.toml`, never keys or role ARNs.
 - `lowass.toml`: thresholds, timings, hotkeys, window, prompts, read-only guard, `[memory]` (data folder, chunking, summary on/off), `[embeddings]` (model, dimensions). It is YOUR local file and is not in git: the first start creates it by copying `lowass.toml.sample`, which is the template that is in git. Edit `lowass.toml` (projects, mcphub addresses, AWS profile, your names for the hint card); when a new version brings a new section, compare with the sample.
+- Which project is starting? With 2 or more projects a window with one big button per project opens at the start of every NEW meeting: when the app starts, and when you press Play (button, `Ctrl+Alt+P`) after `Close meeting`. Nothing is heard until you press a project button: it switches to that project (the current one just continues) and starts listening. Closing the window (Esc or the X) keeps Private on. Pausing and resuming in the middle of a meeting does not ask. `[ui].ask_project = false` turns it off.
 - `[private]`: `drain_sec` (how long the sentence being said is still accepted after Private is switched on) and `start_on` (`true` = start paused, Private on, until you press Play).
 
 The assistant is read-only: tools whose names look like writes are blocked.

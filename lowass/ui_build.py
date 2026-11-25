@@ -16,6 +16,7 @@ def build_window(cfg: Any, app: Any, auto: bool, models: list[str], model: str, 
     tc, tr = cfg.section("transcribe"), cfg.section("translate")
     cb = Callbacks(
         on_toggle_auto=app._set_auto, on_model=app._set_model, on_clear=lambda: close_meeting(app), on_project=app.switch_project,
+        on_project_chosen=lambda key: app.choice.chosen(key), on_project_cancelled=lambda: app.choice.cancelled(),
         on_shortcut=lambda p, label: app.controls.on_shortcut(p, label), on_private=lambda on: app.controls.set_private(on),
         on_translate=app._translate, on_language=lambda c: app.lang.set_recognition(c),
         on_rule=lambda f, t: app.lang.set_translation(f, t))

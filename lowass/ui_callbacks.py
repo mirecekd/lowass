@@ -16,6 +16,8 @@ class Callbacks:
     on_model: Callable[[str], None] = _noop
     on_clear: Callable[[], None] = _noop
     on_project: Callable[[str], None] = _noop  # gets the project KEY
+    on_project_chosen: Callable[[str], None] = _noop  # a button of the 'which project is starting?' dialog (KEY)
+    on_project_cancelled: Callable[[], None] = _noop  # that dialog was closed without a choice
     on_shortcut: Callable[[str, str], None] = _noop
     on_private: Callable[[bool], None] = _noop
     on_translate: Callable[[bool], None] = _noop

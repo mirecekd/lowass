@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from .project_picker import ProjectPicker
+
 
 def make_handlers(win: Any) -> dict[str, Callable[[str], None]]:
     """Message kind -> action on the window `win` (a FloatingWindow). Any other kind is a line of the answer log."""
@@ -41,6 +43,11 @@ def make_handlers(win: Any) -> dict[str, Callable[[str], None]]:
     def facts_reset(_text: str) -> None:
         win.facts.reset()
 
+    def ask_project(current: str) -> None:  # a new meeting begins: which project is it?
+        if getattr(win, "picker", None) is None:  # make_handlers is rebuilt on every poll: the picker lives on the window
+            win.picker = ProjectPicker(win.root)
+        win.picker.ask(win._project_keys, current, win.cb.on_project_chosen, win.cb.on_project_cancelled)
+
     return {
         "facts": win.facts.show_sheet,
         "facts_reset": facts_reset,
@@ -54,6 +61,7 @@ def make_handlers(win: Any) -> dict[str, Callable[[str], None]]:
         "hint": hint,
         "hint_clear": lambda _t: win.card.hide(),
         "hint_copy": lambda _t: win.card.copy(),  # the hotkey: copy what the visible card says
+        "ask_project": ask_project,
         "project": lambda t: win.project_var.set(win._project_keys.get(t, t)),  # a failed switch resets the dropdown
         "screen": lambda _t: win._screen(),
         "unhide": lambda _t: win.root.deiconify(),
