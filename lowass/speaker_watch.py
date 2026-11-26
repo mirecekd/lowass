@@ -161,6 +161,8 @@ class SpeakerWatch:
                 box = grab_box(sct, window)
                 if box and rects:
                     self._frame(sct, box, rects, tracker, outside_warned)
+                else:  # no tile to look at: close every lit name, or it would stay lit for the next sentences
+                    self._emit(tracker.feed(time.time(), {}))
                 self._stop.wait(max(0.0, 1.0 / self._fps - (time.monotonic() - started)))
 
     def _frame(self, sct, box, rects, tracker, outside_warned: set) -> None:
@@ -169,7 +171,10 @@ class SpeakerWatch:
         stats, outside = measure_tiles(img, box, rects, outside_warned)
         if outside:
             self._warn(OUTSIDE_TEXT)
-        for event in tracker.feed(now, stats):
+        self._emit(tracker.feed(now, stats))
+
+    def _emit(self, events: list[dict]) -> None:
+        for event in events:
             self._log.info("speaker watch: a tile %s", "lit up" if event["speaking"] else "went dark")
             try:
                 self._on_event(event)

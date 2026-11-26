@@ -157,3 +157,24 @@ def test_a_minimised_window_is_skipped(monkeypatch):
     watch.stop()
     assert events == []
     assert not thread_alive()
+
+
+def test_no_tiles_closes_the_lit_names(monkeypatch):
+    fed = []
+
+    class Tracker:
+        def feed(self, t, stats):
+            fed.append(stats)
+            return [{"t": t, "name": "Anna", "speaking": False}]
+
+    backend = FakeBackend()
+    backend.tile_rects = lambda root: {}
+    monkeypatch.setattr(speaker_watch, "_make_backend", lambda: backend)
+    monkeypatch.setattr(speaker_watch, "SpeakerTracker", Tracker)
+    events: list[dict] = []
+    watch = SpeakerWatch(events.append, fps=100.0)
+    watch.start()
+    assert wait_for(lambda: len(events) >= 1)
+    watch.stop()
+    assert fed[0] == {}
+    assert events[0] == {"t": events[0]["t"], "name": "Anna", "speaking": False}
