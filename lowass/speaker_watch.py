@@ -86,6 +86,7 @@ class SpeakerWatch:
         self._thread: threading.Thread | None = None
         self._state = ""
         self._warned: set[str] = set()
+        self._seen = ""
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -153,6 +154,10 @@ class SpeakerWatch:
                     next_rects = started + RECT_REFRESH_SECONDS
                     window = backend.window_rect(root)
                     rects = backend.tile_rects(root)
+                    seen = f"speaker watch: {len(rects)} tiles, window {window}"
+                    if seen != self._seen:  # diagnostics only, no names
+                        self._seen = seen
+                        self._log.info(seen)
                 box = grab_box(sct, window)
                 if box and rects:
                     self._frame(sct, box, rects, tracker, outside_warned)
@@ -165,6 +170,7 @@ class SpeakerWatch:
         if outside:
             self._warn(OUTSIDE_TEXT)
         for event in tracker.feed(now, stats):
+            self._log.info("speaker watch: a tile %s", "lit up" if event["speaking"] else "went dark")
             try:
                 self._on_event(event)
             except Exception as exc:  # noqa: BLE001 - the callback must not kill the loop
