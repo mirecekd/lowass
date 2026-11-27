@@ -5,7 +5,7 @@ import time
 from lowass import config
 from lowass.speaker_names import SpeakerTimeline
 from lowass.transcript_logic import TranscriptLines
-from lowass.ui_parts import parse_caption, parse_translation
+from lowass.ui_parts import NAMED, Captions, parse_caption, parse_translation
 from lowass.voice import Voice, build_voice
 
 CFG = config.load(config.ROOT, "lowass.toml.sample")
@@ -79,7 +79,7 @@ def test_without_a_timeline_nothing_changes():
 def test_lit_name_goes_to_caption_transcript_and_memory():
     v, s, tr, me = make(timeline(*lit("Anna Test", 2.5, 2.0)))
     v.final(OTHER, SENTENCE, "cs-CZ")
-    assert s.kinds("caption") == [f"{OTHER}\tfinal\tAnna Test: {SENTENCE}"]  # the caption key stays the other label
+    assert s.kinds("caption") == [f"{OTHER}\tfinal\t{NAMED}Anna Test: {SENTENCE}"]  # the caption key stays the other label
     assert tr.added == me.added == [("Anna Test", SENTENCE)]
 
 
@@ -116,6 +116,17 @@ def test_translation_is_made_from_the_plain_sentence_and_pins_the_named_line():
     assert out == f"CZ[{SENTENCE}]"  # the name was not translated
     lines.update(OTHER, "partial", "next sentence")  # a newer line is open, the translation still finds its own
     lines.translate(speaker, out, source)
-    assert [e.text for e in lines.entries] == [f"Anna Test: {SENTENCE}", "next sentence"]
+    assert [e.text for e in lines.entries] == [f"{NAMED}Anna Test: {SENTENCE}", "next sentence"]
     assert lines.entries[0].translation == out and not lines.entries[1].translation
     assert s.kinds("tr") == [f"Anna Test: CZ[{SENTENCE}]"]
+
+
+def test_a_named_line_is_shown_without_the_other_label_and_a_plain_one_keeps_it():
+    caps = Captions()
+    v, s, _, _ = make(timeline(*lit("Anna Test", 2.5, 2.0)))
+    v.final(OTHER, SENTENCE, "cs-CZ")
+    caps.update(*parse_caption(s.kinds("caption")[-1]))
+    v2, s2, _, _ = make(timeline())
+    v2.final(OTHER, SENTENCE, "cs-CZ")
+    caps.update(*parse_caption(s2.kinds("caption")[-1]))
+    assert [text for _, text in caps.rows()] == [f"Anna Test: {SENTENCE}", f"{OTHER}: {SENTENCE}"]

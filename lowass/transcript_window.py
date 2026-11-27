@@ -19,6 +19,7 @@ from .ui_parts import (
     TRANSLATION_COLOR,
     parse_caption,
     parse_translation,
+    shown_line,
 )
 
 
@@ -113,7 +114,7 @@ class TranscriptWindow:
         text.configure(state="normal")
         text.delete("1.0", "end")
         for entry in self._lines.entries:
-            text.insert("end", f"{entry.speaker}: {entry.text}\n", "final" if entry.final else "partial")
+            text.insert("end", shown_line(entry.speaker, entry.text) + "\n", "final" if entry.final else "partial")
             if entry.translation:
                 text.insert("end", f"-> {entry.translation}\n", "translation")
         text.configure(state="disabled")

@@ -5,6 +5,12 @@ from __future__ import annotations
 PARTIAL_COLOR, FINAL_COLOR, TRANSLATION_COLOR = "#8a8a8a", "#e6e6e6", "#4fc1ff"
 PRIVATE_COLOR, BACKGROUND = "#c0392b", "#1e1e1e"
 FACTS_COLOR = "#b87333"  # copper, like the headings of the facts window
+NAMED = "\x1e"  # first character of a caption text that already starts with a Teams speaker name: no "Protistrana: " label
+
+
+def shown_line(speaker: str, text: str) -> str:
+    """The line as shown in the windows: `speaker: text`, or just `Name: text` when Voice put a Teams name in front."""
+    return text[len(NAMED):] if text.startswith(NAMED) else f"{speaker}: {text}"
 
 
 def flow_rows(labels: list[str], width_px: int, char_px: int, pad_px: int = 2) -> list[list[int]]:
@@ -88,7 +94,7 @@ class Captions:
     def rows(self) -> list[tuple[str, str]]:
         out: list[tuple[str, str]] = []
         for line in self._lines:
-            out.append((line["state"], f"{line['speaker']}: {line['text']}"))
+            out.append((line["state"], shown_line(line["speaker"], line["text"])))
             if line["translation"]:
                 out.append(("translation", f"-> {line['translation']}"))
         return out[-self.max_lines:]

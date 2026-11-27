@@ -10,6 +10,8 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from .ui_parts import NAMED
+
 log = logging.getLogger("lowass.voice")
 Post = Callable[[str, str], None]
 
@@ -34,7 +36,7 @@ class Voice:
         if self.paused() or not text.strip():
             return
         who = self._who(speaker, text)  # the active Teams speaker of the other side, else None
-        shown = f"{who}: {text}" if who else text  # the caption keeps the `speaker` key (it matches the open partial line)
+        shown = f"{NAMED}{who}: {text}" if who else text  # the caption keeps the `speaker` key (it matches the open partial line)
         self.post("caption", f"{speaker}\tfinal\t{shown}")
         log.debug("heard %s [%s]: %s", who or speaker, lang, text)
         if speaker == self.my_label and self.wake is not None and self._wake(text):
