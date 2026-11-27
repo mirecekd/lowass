@@ -55,7 +55,10 @@ class Voice:
         # shortcut: estimated sentence start, upgrade by passing the real gate start time through live_stream
         t_start = t_end - max(1.0, 0.4 * len(text.split()))
         try:
-            return self.names.who(t_start - self.lead_seconds, t_end)
+            who = self.names.who(t_start - self.lead_seconds, t_end)
+            log.info("speaker name: %s (window %.1f s, %d names lit in the history)", "found" if who else "none",
+                     t_end - t_start + self.lead_seconds, len(self.names._intervals))
+            return who
         except Exception:
             log.exception("speaker name lookup failed")
             return None
